@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import { ClassNames } from '@emotion/core';
 import { Map, List } from 'immutable';
-import { ObjectWidgetTopBar, lengths } from 'netlify-cms-ui-default';
+import { ObjectWidgetTopBar, lengths, colors } from 'netlify-cms-ui-default';
 
 const styleStrings = {
   nestedObjectControl: `
@@ -14,6 +14,9 @@ const styleStrings = {
   `,
   objectWidgetTopBarContainer: `
     padding: ${lengths.objectWidgetTopBarContainerPadding};
+  `,
+  collapsedObjectControl: `
+    display: none;
   `,
 };
 
@@ -29,10 +32,11 @@ export default class ObjectControl extends React.Component {
     classNameWrapper: PropTypes.string.isRequired,
     forList: PropTypes.bool,
     controlRef: PropTypes.func,
-    editorControl: PropTypes.func.isRequired,
+    editorControl: PropTypes.elementType.isRequired,
     resolveWidget: PropTypes.func.isRequired,
     clearFieldErrors: PropTypes.func.isRequired,
     fieldsErrors: ImmutablePropTypes.map.isRequired,
+    hasError: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -42,7 +46,7 @@ export default class ObjectControl extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      collapsed: false,
+      collapsed: props.field.get('collapsed', false),
     };
   }
 
@@ -76,6 +80,7 @@ export default class ObjectControl extends React.Component {
       fieldsErrors,
       editorControl: EditorControl,
       controlRef,
+      parentIds,
     } = this.props;
 
     if (field.get('widget') === 'hidden') {
@@ -96,6 +101,7 @@ export default class ObjectControl extends React.Component {
         onValidate={onValidateObject}
         processControlRef={controlRef && controlRef.bind(this)}
         controlRef={controlRef}
+        parentIds={parentIds}
       />
     );
   }
@@ -112,8 +118,8 @@ export default class ObjectControl extends React.Component {
   };
 
   render() {
-    const { field, forID, classNameWrapper, forList } = this.props;
-    const { collapsed } = this.state;
+    const { field, forID, classNameWrapper, forList, hasError } = this.props;
+    const collapsed = forList ? this.props.collapsed : this.state.collapsed;
     const multiFields = field.get('fields');
     const singleField = field.get('field');
 
@@ -133,6 +139,11 @@ export default class ObjectControl extends React.Component {
                     ${styleStrings.nestedObjectControl}
                   `]: forList,
                 },
+                {
+                  [css`
+                    border-color: ${colors.textFieldBorder};
+                  `]: forList ? !hasError : false,
+                },
               )}
             >
               {forList ? null : (
@@ -141,7 +152,15 @@ export default class ObjectControl extends React.Component {
                   onCollapseToggle={this.handleCollapseToggle}
                 />
               )}
-              {collapsed ? null : this.renderFields(multiFields, singleField)}
+              <div
+                className={cx({
+                  [css`
+                    ${styleStrings.collapsedObjectControl}
+                  `]: collapsed,
+                })}
+              >
+                {this.renderFields(multiFields, singleField)}
+              </div>
             </div>
           )}
         </ClassNames>

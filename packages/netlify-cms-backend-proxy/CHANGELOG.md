@@ -3,6 +3,71 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.1.2 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 1.1.1 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
+# [1.1.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/compare/netlify-cms-backend-proxy@1.0.7...netlify-cms-backend-proxy@1.1.0) (2020-06-18)
+
+
+### Bug Fixes
+
+* handle token expiry ([#3847](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/issues/3847)) ([285c940](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/commit/285c940562548d7bc88de244123ba87ff66fba65))
+
+
+### Features
+
+* add backend status down indicator ([#3889](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/issues/3889)) ([a50edc7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/commit/a50edc70553ad6afa1acee6a51996ad226443f8c))
+
+
+
+
+
+## [1.0.7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/compare/netlify-cms-backend-proxy@1.0.6...netlify-cms-backend-proxy@1.0.7) (2020-05-19)
+
+**Note:** Version bump only for package netlify-cms-backend-proxy
+
+
+
+
+
+## [1.0.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/compare/netlify-cms-backend-proxy@1.0.5...netlify-cms-backend-proxy@1.0.6) (2020-04-06)
+
+
+### Bug Fixes
+
+* **backend-proxy:** fix error reporting ([#3527](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/issues/3527)) ([f94dea3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/commit/f94dea386ce89f0f92744d0c4196416706999ea0))
+
+
+
+
+
+## [1.0.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/compare/netlify-cms-backend-proxy@1.0.4...netlify-cms-backend-proxy@1.0.5) (2020-04-01)
+
+**Note:** Version bump only for package netlify-cms-backend-proxy
+
+
+
+
+
 ## [1.0.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-proxy/compare/netlify-cms-backend-proxy@1.0.3...netlify-cms-backend-proxy@1.0.4) (2020-03-03)
 
 

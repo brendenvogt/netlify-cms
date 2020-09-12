@@ -1,7 +1,7 @@
 ---
 title: Beta Features!
 weight: 200
-group: reference
+group: Configuration
 ---
 
 We run new functionality in an open beta format from time to time. That means that this functionality is totally available for use, and we _think_ it might be ready for primetime, but it could break or change without notice.
@@ -25,9 +25,11 @@ backend:
 # when using the default proxy server port
 local_backend: true
 
-# when using a custom proxy server port
 local_backend:
+  # when using a custom proxy server port
   url: http://localhost:8082/api/v1
+  # when accessing the local site from a host other than 'localhost' or '127.0.0.1'
+  allowed_hosts: ['192.168.0.1']
 ```
 
 4. Start your local development server (e.g. run `gatsby develop`).
@@ -79,9 +81,9 @@ By default the CMS stores folder collection content under the folder specified i
 
 For example configuring `folder: posts` for a collection will save the content under `posts/post-title.md`.
 
-You can now specify a `path` template (similar to the `slug` template) to control the content destination.
+You can now specify an additional `path` template (similar to the `slug` template) to control the content destination.
 
-This allows saving content in subfolders, e.g. configuring `path: '{{year}}/{{slug}}'` will save the content under `2019/post-title.md`.
+This allows saving content in subfolders, e.g. configuring `path: '{{year}}/{{slug}}'` will save the content under `posts/2019/post-title.md`.
 
 ## Folder Collections Media and Public Folder
 
@@ -163,6 +165,7 @@ To use variable types in the list widget, update your field configuration as fol
 
 - `types`: a nested list of object widgets. All widgets must be of type `object`. Every object widget may define different set of fields.
 - `typeKey`: the name of the field that will be added to every item in list representing the name of the object widget that item belongs to. Ignored if `types` is not defined. Default is `type`.
+- `summary`: allows customization of a collapsed list item object in a similar way to a [collection summary](/docs/configuration-options/?#summary)
 
 ### Example Configuration
 
@@ -177,6 +180,7 @@ either a "carousel" or a "spotlight". Each type has a unique name and set of fie
     - label: 'Carousel'
       name: 'carousel'
       widget: object
+      summary: '{{fields.header}}'
       fields:
         - { label: Header, name: header, widget: string, default: 'Image Gallery' }
         - { label: Template, name: template, widget: string, default: 'carousel.html' }
@@ -235,9 +239,7 @@ You can now provide your own element for Netlify CMS to mount in by setting the 
 
 Netlify CMS can now be manually initialized, rather than automatically loading up the moment you import it. The whole point of this at the moment is to inject configuration into Netlify CMS before it loads, bypassing need for an actual Netlify CMS `config.yml`. This is important, for example, when creating tight integrations with static site generators.
 
-Injecting config is technically already possible by setting `window.CMS_CONFIG` before importing/requiring/running Netlify CMS, but most projects are modular and don't want to use globals, plus `window.CMS_CONFIG` is an internal, not technically supported, and provides no validation.
-
-Assuming you have the netlify-cms package installed to your project, manual initialization works like this:
+Assuming you have the netlify-cms package installed to your project, manual initialization works by setting `window.CMS_MANUAL_INIT = true` **before importing the CMS**:
 
 ```js
 // This global flag enables manual initialization.
@@ -347,14 +349,14 @@ backend:
 
 Netlify CMS generates the following commit types:
 
-| Commit type     | When is it triggered?                    | Available template tags                  |
-| --------------- | ---------------------------------------- | ---------------------------------------- |
-| `create`        | A new entry is created                   | `slug`, `path`, `collection`             |
-| `update`        | An existing entry is changed             | `slug`, `path`, `collection`             |
-| `delete`        | An exising entry is deleted              | `slug`, `path`, `collection`             |
-| `uploadMedia`   | A media file is uploaded                 | `path`                                   |
-| `deleteMedia`   | A media file is deleted                  | `path`                                   |
-| `openAuthoring` | A commit is made via a forked repository | `message`, `author-login`, `author-name` |
+| Commit type     | When is it triggered?                    | Available template tags                                     |
+| --------------- | ---------------------------------------- | ----------------------------------------------------------- |
+| `create`        | A new entry is created                   | `slug`, `path`, `collection`, `author-login`, `author-name` |
+| `update`        | An existing entry is changed             | `slug`, `path`, `collection`, `author-login`, `author-name` |
+| `delete`        | An exising entry is deleted              | `slug`, `path`, `collection`, `author-login`, `author-name` |
+| `uploadMedia`   | A media file is uploaded                 | `path`, `author-login`, `author-name`                       |
+| `deleteMedia`   | A media file is deleted                  | `path`, `author-login`, `author-name`                       |
+| `openAuthoring` | A commit is made via a forked repository | `message`, `author-login`, `author-name`                    |
 
 Template tags produce the following output:
 
@@ -397,24 +399,18 @@ CMS.registerEventListener({
   name: 'prePublish',
   handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
 });
-
-CMS.registerEventListener({
-  name: 'postPublish',
-  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
-});
-
-CMS.registerEventListener({
-  name: 'preUnpublish',
-  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
-});
-
-CMS.registerEventListener({
-  name: 'postUnpublish',
-  handler: ({ author, entry }) => console.log(JSON.stringify({ author, data: entry.get('data') })),
-});
 ```
 
-**Note:** Supported events are `prePublish`, `postPublish`, `preUnpublish` and `postUnpublish`.
+Supported events are `prePublish`, `postPublish`, `preUnpublish`, `postUnpublish`, `preSave` and `postSave`. The `preSave` hook can be used to modify the entry data like so:
+
+```javascript
+CMS.registerEventListener({
+  name: 'preSave',
+  handler: ({ entry }) => {
+    return entry.get('data').set('title', 'new title');
+  },
+});
+```
 
 ## Dynamic Default Values
 
@@ -450,3 +446,32 @@ will open the editor for a new post with the `title` field populated with `first
 with `second` and the markdown `body` field with `# content`.
 
 **Note:** URL Encoding might be required for certain values (e.g. in the previous example the value for `body` is URL encoded).
+
+## Nested Collections
+
+Allows a folder collection to show a nested structure of entries and edit the locations of the entries.
+
+Example configuration:
+
+```yaml
+collections:
+  - name: pages
+    label: Pages
+    label_singular: 'Page'
+    folder: content/pages
+    create: true
+    # adding a nested object will show the collection folder structure
+    nested:
+      depth: 100 # max depth to show in the collection tree
+      summary: '{{title}}' # optional summary for a tree node, defaults to the inferred title field
+    fields:
+      - label: Title
+        name: title
+        widget: string
+      - label: Body
+        name: body
+        widget: markdown
+    # adding a meta object with a path property allows editing the path of entries
+    # moving an existing entry will move the entire sub tree of the entry to the new location
+    meta: { path: { widget: string, label: 'Path', index_file: 'index' } }
+```

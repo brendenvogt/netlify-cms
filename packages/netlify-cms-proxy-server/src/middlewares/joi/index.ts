@@ -8,6 +8,8 @@ const allowedActions = [
   'getEntry',
   'unpublishedEntries',
   'unpublishedEntry',
+  'unpublishedEntryDataFile',
+  'unpublishedEntryMediaFile',
   'deleteUnpublishedEntry',
   'persistEntry',
   'updateUnpublishedEntryStatus',
@@ -77,8 +79,32 @@ export const defaultSchema = ({ path = requiredString } = {}) => {
         is: 'unpublishedEntry',
         then: defaultParams
           .keys({
+            id: Joi.string().optional(),
+            collection: Joi.string().optional(),
+            slug: Joi.string().optional(),
+            cmsLabelPrefix: Joi.string().optional(),
+          })
+          .required(),
+      },
+      {
+        is: 'unpublishedEntryDataFile',
+        then: defaultParams
+          .keys({
             collection,
             slug,
+            id: requiredString,
+            path: requiredString,
+          })
+          .required(),
+      },
+      {
+        is: 'unpublishedEntryMediaFile',
+        then: defaultParams
+          .keys({
+            collection,
+            slug,
+            id: requiredString,
+            path: requiredString,
           })
           .required(),
       },
@@ -95,7 +121,13 @@ export const defaultSchema = ({ path = requiredString } = {}) => {
         is: 'persistEntry',
         then: defaultParams
           .keys({
-            entry: Joi.object({ slug: requiredString, path, raw: requiredString }).required(),
+            cmsLabelPrefix: Joi.string().optional(),
+            entry: Joi.object({
+              slug: requiredString,
+              path,
+              raw: requiredString,
+              newPath: path.optional(),
+            }).required(),
             assets: Joi.array()
               .items(asset)
               .required(),
@@ -115,6 +147,7 @@ export const defaultSchema = ({ path = requiredString } = {}) => {
             collection,
             slug,
             newStatus: requiredString,
+            cmsLabelPrefix: Joi.string().optional(),
           })
           .required(),
       },

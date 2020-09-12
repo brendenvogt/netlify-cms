@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.3.6 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-media-library-cloudinary/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 1.3.5 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-media-library-cloudinary/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
 ## [1.3.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-media-library-cloudinary/compare/netlify-cms-media-library-cloudinary@1.3.3...netlify-cms-media-library-cloudinary@1.3.4) (2019-09-26)
 
 

@@ -34,16 +34,33 @@ const en = {
   collection: {
     sidebar: {
       collections: 'Collections',
+      allCollections: 'All Collections',
       searchAll: 'Search all',
+      searchIn: 'Search in',
     },
     collectionTop: {
+      sortBy: 'Sort by',
       viewAs: 'View as',
       newButton: 'New %{collectionLabel}',
+      ascending: 'Ascending',
+      descending: 'Descending',
+      searchResults: 'Search Results for "%{searchTerm}"',
+      searchResultsInCollection: 'Search Results for "%{searchTerm}" in %{collection}',
+      filterBy: 'Filter by',
     },
     entries: {
-      loadingEntries: 'Loading Entries',
-      cachingEntries: 'Caching Entries',
+      loadingEntries: 'Loading Entries...',
+      cachingEntries: 'Caching Entries...',
       longerLoading: 'This might take several minutes',
+      noEntries: 'No Entries',
+    },
+    defaultFields: {
+      author: {
+        label: 'Author',
+      },
+      updatedOn: {
+        label: 'Updated On',
+      },
     },
   },
   editor: {
@@ -64,6 +81,8 @@ const en = {
         rangeCountExact: '%{fieldLabel} must have exactly %{count} item(s).',
         minCount: '%{fieldLabel} must be at least %{minCount} item(s).',
         maxCount: '%{fieldLabel} must be %{maxCount} or less item(s).',
+        invalidPath: `'%{path}' is not a valid path`,
+        pathExists: `Path '%{path}' already exists`,
       },
     },
     editor: {
@@ -141,6 +160,9 @@ const en = {
         headingFive: 'Heading 5',
         headingSix: 'Heading 6',
       },
+      datetime: {
+        now: 'Now',
+      },
     },
   },
   mediaLibrary: {
@@ -161,7 +183,8 @@ const en = {
       mediaAssets: 'Media assets',
       search: 'Search...',
       uploading: 'Uploading...',
-      uploadNew: 'Upload new',
+      upload: 'Upload',
+      download: 'Download',
       deleting: 'Deleting...',
       deleteSelected: 'Delete selected',
       chooseSelected: 'Choose selected',
@@ -174,8 +197,10 @@ const en = {
     errorBoundary: {
       title: 'Error',
       details: "There's been an error - please ",
-      reportIt: 'report it.',
+      reportIt: 'open an issue on GitHub.',
       detailsHeading: 'Details',
+      privacyWarning:
+        'Opening an issue pre-populates it with the error message and debugging data.\nPlease verify the information is correct and remove sensitive data if exists.',
       recoveredEntry: {
         heading: 'Recovered document',
         warning: 'Please copy/paste this somewhere before navigating away!',
@@ -200,6 +225,9 @@ const en = {
       entryUpdated: 'Entry status updated',
       onDeleteUnpublishedChanges: 'Unpublished changes deleted',
       onFailToAuth: '%{details}',
+      onLoggedOut: 'You have been logged out, please back up any data and login again',
+      onBackendDown:
+        'The backend service is experiencing an outage. See %{details} for more information',
     },
   },
   workflow: {

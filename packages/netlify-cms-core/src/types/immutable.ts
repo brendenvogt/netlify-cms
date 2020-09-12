@@ -16,6 +16,10 @@ export interface StaticallyTypedRecord<T> {
     keys: [K1, K2, K3],
     defaultValue?: V,
   ): T[K1][K2][K3];
+  setIn<K1 extends keyof T, K2 extends keyof T[K1], V extends T[K1][K2]>(
+    keys: [K1, K2],
+    value: V,
+  ): StaticallyTypedRecord<T>;
   toJS(): T;
   isEmpty(): boolean;
   some<K extends keyof T>(predicate: (value: T[K], key: K, iter: this) => boolean): boolean;
@@ -24,8 +28,9 @@ export interface StaticallyTypedRecord<T> {
   filter<K extends keyof T>(
     predicate: (value: T[K], key: K, iter: this) => boolean,
   ): StaticallyTypedRecord<T>;
-  valueSeq<K extends keyof T>(): T[K][];
+  valueSeq<K extends keyof T>(): T[K][] & { toArray: () => T[K][] };
   map<K extends keyof T, V>(
     mapFunc: (value: T[K]) => V,
   ): StaticallyTypedRecord<{ [key: string]: V }>;
+  keySeq<K extends keyof T>(): { toArray: () => K[] };
 }

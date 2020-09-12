@@ -1,9 +1,11 @@
-import yaml from 'js-yaml';
+import yaml from 'yaml';
 import { Map, fromJS } from 'immutable';
-import { trimStart, get, isPlainObject } from 'lodash';
+import { trimStart, trim, get, isPlainObject } from 'lodash';
 import { authenticateUser } from 'Actions/auth';
 import * as publishModes from 'Constants/publishModes';
 import { validateConfig } from 'Constants/configSchema';
+import { selectDefaultSortableFields, traverseFields } from '../reducers/collections';
+import { resolveBackend } from 'coreSrc/backend';
 
 export const CONFIG_REQUEST = 'CONFIG_REQUEST';
 export const CONFIG_SUCCESS = 'CONFIG_SUCCESS';
@@ -22,9 +24,85 @@ const getConfigUrl = () => {
   return 'config.yml';
 };
 
+const setDefaultPublicFolder = map => {
+  if (map.has('media_folder') && !map.has('public_folder')) {
+    map = map.set('public_folder', map.get('media_folder'));
+  }
+  return map;
+};
+
+const setSnakeCaseConfig = field => {
+  // Mapping between existing camelCase and its snake_case counterpart
+  const widgetKeyMap = {
+    dateFormat: 'date_format',
+    timeFormat: 'time_format',
+    pickerUtc: 'picker_utc',
+    editorComponents: 'editor_components',
+    valueType: 'value_type',
+    valueField: 'value_field',
+    searchFields: 'search_fields',
+    displayFields: 'display_fields',
+    optionsLength: 'options_length',
+  };
+
+  Object.entries(widgetKeyMap).forEach(([camel, snake]) => {
+    if (field.has(camel)) {
+      field = field.set(snake, field.get(camel));
+      console.warn(
+        `Field ${field.get(
+          'name',
+        )} is using a deprecated configuration '${camel}'. Please use '${snake}'`,
+      );
+    }
+  });
+  return field;
+};
+
 const defaults = {
   publish_mode: publishModes.SIMPLE,
 };
+
+export function normalizeConfig(config) {
+  return Map(config).withMutations(map => {
+    map.set(
+      'collections',
+      map.get('collections').map(collection => {
+        const folder = collection.get('folder');
+        if (folder) {
+          collection = collection.set(
+            'fields',
+            traverseFields(collection.get('fields'), setSnakeCaseConfig),
+          );
+        }
+
+        const files = collection.get('files');
+        if (files) {
+          collection = collection.set(
+            'files',
+            files.map(file => {
+              file = file.set('fields', traverseFields(file.get('fields'), setSnakeCaseConfig));
+              return file;
+            }),
+          );
+        }
+
+        if (collection.has('sortableFields')) {
+          collection = collection
+            .set('sortable_fields', collection.get('sortableFields'))
+            .delete('sortableFields');
+
+          console.warn(
+            `Collection ${collection.get(
+              'name',
+            )} is using a deprecated configuration 'sortableFields'. Please use 'sortable_fields'`,
+          );
+        }
+
+        return collection;
+      }),
+    );
+  });
+}
 
 export function applyDefaults(config) {
   return Map(defaults)
@@ -37,7 +115,7 @@ export function applyDefaults(config) {
 
       // Use media_folder as default public_folder.
       const defaultPublicFolder = `/${trimStart(map.get('media_folder'), '/')}`;
-      if (!map.get('public_folder')) {
+      if (!map.has('public_folder')) {
         map.set('public_folder', defaultPublicFolder);
       }
 
@@ -58,27 +136,75 @@ export function applyDefaults(config) {
       map.set(
         'collections',
         map.get('collections').map(collection => {
+          if (!collection.has('publish')) {
+            collection = collection.set('publish', true);
+          }
+
           const folder = collection.get('folder');
           if (folder) {
             if (collection.has('path') && !collection.has('media_folder')) {
               // default value for media folder when using the path config
               collection = collection.set('media_folder', '');
             }
-            if (collection.has('media_folder') && !collection.has('public_folder')) {
-              collection = collection.set('public_folder', collection.get('media_folder'));
+            collection = setDefaultPublicFolder(collection);
+            collection = collection.set(
+              'fields',
+              traverseFields(collection.get('fields'), setDefaultPublicFolder),
+            );
+            collection = collection.set('folder', trim(folder, '/'));
+            if (collection.has('meta')) {
+              const fields = collection.get('fields');
+              const metaFields = [];
+              collection.get('meta').forEach((value, key) => {
+                const field = value.withMutations(map => {
+                  map.set('name', key);
+                  map.set('meta', true);
+                  map.set('required', true);
+                });
+                metaFields.push(field);
+              });
+              collection = collection.set('fields', fromJS([]).concat(metaFields, fields));
+            } else {
+              collection = collection.set('meta', Map());
             }
-            return collection.set('folder', trimStart(folder, '/'));
           }
 
           const files = collection.get('files');
           if (files) {
-            return collection.set(
+            collection = collection.delete('nested');
+            collection = collection.delete('meta');
+            collection = collection.set(
               'files',
               files.map(file => {
-                return file.set('file', trimStart(file.get('file'), '/'));
+                file = file.set('file', trimStart(file.get('file'), '/'));
+                file = setDefaultPublicFolder(file);
+                file = file.set(
+                  'fields',
+                  traverseFields(file.get('fields'), setDefaultPublicFolder),
+                );
+                return file;
               }),
             );
           }
+
+          if (!collection.has('sortable_fields')) {
+            const backend = resolveBackend(config);
+            const defaultSortable = selectDefaultSortableFields(collection, backend);
+            collection = collection.set('sortable_fields', fromJS(defaultSortable));
+          }
+
+          if (!collection.has('view_filters')) {
+            collection = collection.set('view_filters', fromJS([]));
+          } else {
+            collection = collection.set(
+              'view_filters',
+              collection
+                .get('view_filters')
+                .map(v => v.set('id', `${v.get('field')}__${v.get('pattern')}`)),
+            );
+          }
+
+          return collection;
         }),
       );
     });
@@ -89,8 +215,8 @@ function mergePreloadedConfig(preloadedConfig, loadedConfig) {
   return preloadedConfig ? preloadedConfig.mergeDeep(map) : map;
 }
 
-function parseConfig(data) {
-  const config = yaml.safeLoad(data);
+export function parseConfig(data) {
+  const config = yaml.parse(data, { maxAliasCount: -1, prettyErrors: true, merge: true });
   if (typeof CMS_ENV === 'string' && config[CMS_ENV]) {
     Object.keys(config[CMS_ENV]).forEach(key => {
       config[key] = config[CMS_ENV][key];
@@ -146,12 +272,14 @@ export function mergeConfig(config) {
 }
 
 export async function detectProxyServer(localBackend) {
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  const allowedHosts = ['localhost', '127.0.0.1', ...(localBackend?.allowed_hosts || [])];
+  if (allowedHosts.includes(location.hostname)) {
     let proxyUrl;
+    const defaultUrl = 'http://localhost:8081/api/v1';
     if (localBackend === true) {
-      proxyUrl = 'http://localhost:8081/api/v1';
+      proxyUrl = defaultUrl;
     } else if (isPlainObject(localBackend)) {
-      proxyUrl = localBackend.url;
+      proxyUrl = localBackend.url || defaultUrl.replace('localhost', location.hostname);
     }
     try {
       console.log(`Looking for Netlify CMS Proxy Server at '${proxyUrl}'`);
@@ -224,7 +352,7 @@ export function loadConfig() {
 
       mergedConfig = await handleLocalBackend(mergedConfig);
 
-      const config = applyDefaults(mergedConfig);
+      const config = applyDefaults(normalizeConfig(mergedConfig));
 
       dispatch(configDidLoad(config));
       dispatch(authenticateUser());

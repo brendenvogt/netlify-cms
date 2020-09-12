@@ -4,6 +4,7 @@ import {
   compileStringTemplate,
   parseDateFromEntry,
   extractTemplateVars,
+  expandPath,
 } from '../stringTemplate';
 describe('stringTemplate', () => {
   describe('keyToPathArray', () => {
@@ -25,29 +26,24 @@ describe('stringTemplate', () => {
   });
 
   describe('parseDateFromEntry', () => {
-    it('should infer date field and return entry date', () => {
+    it('should return date based on dateFieldName', () => {
       const date = new Date().toISOString();
-      const entry = fromJS({ data: { date } });
-      const collection = fromJS({ fields: [{ name: 'date', widget: 'date' }] });
-      expect(parseDateFromEntry(entry, collection).toISOString()).toBe(date);
+      const dateFieldName = 'dateFieldName';
+      const entry = fromJS({ data: { dateFieldName: date } });
+      expect(parseDateFromEntry(entry, dateFieldName).toISOString()).toBe(date);
     });
 
-    it('should use supplied date field and return entry date', () => {
-      const date = new Date().toISOString();
-      const entry = fromJS({ data: { preview_date: date } });
-      expect(parseDateFromEntry(entry, null, 'preview_date').toISOString()).toBe(date);
-    });
-
-    it('should return undefined on non existing date', () => {
+    it('should return undefined on empty dateFieldName', () => {
       const entry = fromJS({ data: {} });
-      const collection = fromJS({ fields: [{}] });
-      expect(parseDateFromEntry(entry, collection)).toBeUndefined();
+      expect(parseDateFromEntry(entry, '')).toBeUndefined();
+      expect(parseDateFromEntry(entry, null)).toBeUndefined();
+      expect(parseDateFromEntry(entry, undefined)).toBeUndefined();
     });
 
     it('should return undefined on invalid date', () => {
       const entry = fromJS({ data: { date: '' } });
-      const collection = fromJS({ fields: [{ name: 'date', widget: 'date' }] });
-      expect(parseDateFromEntry(entry, collection)).toBeUndefined();
+      const dateFieldName = 'date';
+      expect(parseDateFromEntry(entry, dateFieldName)).toBeUndefined();
     });
   });
 
@@ -110,6 +106,68 @@ describe('stringTemplate', () => {
       expect(
         compileStringTemplate('{{slug}}', date, 'slug', fromJS({}), value => value.toUpperCase()),
       ).toBe('SLUG');
+    });
+  });
+
+  describe('expandPath', () => {
+    it('should expand wildcard paths', () => {
+      const data = {
+        categories: [
+          {
+            name: 'category 1',
+          },
+          {
+            name: 'category 2',
+          },
+        ],
+      };
+
+      expect(expandPath({ data, path: 'categories.*.name' })).toEqual([
+        'categories.0.name',
+        'categories.1.name',
+      ]);
+    });
+
+    it('should handle wildcard at the end of the path', () => {
+      const data = {
+        nested: {
+          otherNested: {
+            list: [
+              {
+                title: 'title 1',
+                nestedList: [{ description: 'description 1' }, { description: 'description 2' }],
+              },
+              {
+                title: 'title 2',
+                nestedList: [{ description: 'description 2' }, { description: 'description 2' }],
+              },
+            ],
+          },
+        },
+      };
+
+      expect(expandPath({ data, path: 'nested.otherNested.list.*.nestedList.*' })).toEqual([
+        'nested.otherNested.list.0.nestedList.0',
+        'nested.otherNested.list.0.nestedList.1',
+        'nested.otherNested.list.1.nestedList.0',
+        'nested.otherNested.list.1.nestedList.1',
+      ]);
+    });
+
+    it('should handle non wildcard index', () => {
+      const data = {
+        categories: [
+          {
+            name: 'category 1',
+          },
+          {
+            name: 'category 2',
+          },
+        ],
+      };
+      const path = 'categories.0.name';
+
+      expect(expandPath({ data, path })).toEqual(['categories.0.name']);
     });
   });
 });

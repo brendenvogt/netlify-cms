@@ -11,65 +11,113 @@ site_url: https://www.netlifycms.org
 publish_mode: editorial_workflow
 
 media_folder: website/static/img
-public_folder: img
+public_folder: /img
 
 docs_collection: &docs_collection
   folder: website/content/docs
   create: true
-  preview_path: "docs/{{slug}}"
+  summary: '{{weight}} - {{title}}'
+  preview_path: 'docs/{{slug}}'
+  sortableFields: ['weight', 'title', 'group']
   fields:
+    - label: Section
+      name: group
+      widget: relation
+      collection: settings
+      file: docs_sections
+      searchFields: ["menu.docs.*.name", "menu.docs.*.title"]
+      displayFields: ["menu.docs.*.title"]
+      valueField: "menu.docs.*.name"
+    - { label: 'Order', name: weight, widget: number }
     - { label: Title, name: title }
-    - { label: Group, name: group, widget: select, options: [start, features, reference, media, guides, customization, contributing] }
-    - { label: Weight, name: weight, widget: number }
     - { label: Body, name: body, widget: markdown }
 
 collections:
+  - label: Settings
+    name: settings
+    hide: true
+    files:
+      - label: Docs Sections
+        name: docs_sections
+        file: website/site.yml
+        fields:
+            - label: menu
+              name: menu
+              widget: object
+              fields:
+              - label: Sections
+                label_singular: Section
+                name: docs
+                widget: list
+                summary: '{{title}} ({{name}})'
+                fields:
+                  - { label: 'Full Name', name: 'title', widget: 'string' }
+                  - { label: 'Summary Name', name: 'name', widget: 'string' }
+
   - <<: *docs_collection
-    name: docs_start
-    label: "Docs: Quick Start"
+    name: docs_intro
+    label: 'Docs: Intro'
     filter:
       field: group
-      value: start
+      value: Intro
   - <<: *docs_collection
-    name: docs_features
-    label: "Docs: Features"
+    name: docs_accounts
+    label: 'Docs: Account'
     filter:
       field: group
-      value: features
+      value: Accounts
   - <<: *docs_collection
-    name: docs_reference
-    label: "Docs: Reference"
+    name: docs_configuration
+    label: 'Docs: Configuration'
     filter:
       field: group
-      value: reference
+      value: Configuration
   - <<: *docs_collection
     name: docs_media
-    label: "Docs: Media"
+    label: 'Docs: Media'
     filter:
       field: group
-      value: media
+      value: Media
+  - <<: *docs_collection
+    name: docs_workflow
+    label: 'Docs: Workflow'
+    filter:
+      field: group
+      value: Workflow
+  - <<: *docs_collection
+    name: docs_collections
+    label: 'Docs: Collections'
+    filter:
+      field: group
+      value: Collections
+  - <<: *docs_collection
+    name: docs_fields
+    label: 'Docs: Fields'
+    filter:
+      field: group
+      value: Fields
   - <<: *docs_collection
     name: docs_guides
-    label: "Docs: Guides"
+    label: 'Docs: Guides'
     filter:
       field: group
-      value: guides
+      value: Guides
   - <<: *docs_collection
     name: docs_customization
-    label: "Docs: Customization"
+    label: 'Docs: Customization'
     filter:
       field: group
-      value: customization
+      value: Customization
   - <<: *docs_collection
     name: docs_contributing
-    label: "Docs: Contributing"
+    label: 'Docs: Contributing'
     filter:
       field: group
-      value: contributing
+      value: Contributing
   - name: widget_docs
-    label: "Docs: Widgets"
+    label: 'Docs: Widgets'
     folder: website/content/docs/widgets
-    preview_path: "docs/widgets/{{title}}"
+    preview_path: 'docs/widgets/{{title}}'
     create: true
     fields:
       - { label: Name, name: title }
@@ -79,13 +127,18 @@ collections:
     label: Blog
     label_singular: Post
     folder: website/content/blog
-    preview_path: "blog/{{year}}/{{month}}/{{title}}"
+    preview_path: 'blog/{{year}}/{{month}}/{{title}}'
     create: true
     fields:
       - { label: Title, name: title }
       - { label: Author, name: author }
       - { label: Description (for blog list), name: description, widget: text }
-      - { label: Meta Description (defaults to Description), name: meta_description, widget: text, required: false }
+      - {
+          label: Meta Description (defaults to Description),
+          name: meta_description,
+          widget: text,
+          required: false,
+        }
       - { label: Twitter Image, name: twitter_image, widget: image }
       - { label: Date, name: date, widget: date }
       - { label: Body, name: body, widget: markdown }
@@ -140,4 +193,4 @@ collections:
               - { label: Published, name: published, widget: boolean }
               - { label: Loud, name: loud, widget: boolean }
               - { label: Message, name: message, widget: text }
-              - { label: URL, name: url}
+              - { label: URL, name: url }

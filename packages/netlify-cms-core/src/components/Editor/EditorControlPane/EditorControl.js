@@ -20,6 +20,7 @@ import {
   removeMediaControl,
 } from 'Actions/mediaLibrary';
 import Widget from './Widget';
+import { validateMetaField } from '../../../actions/entries';
 
 /**
  * This is a necessary bridge as we are still passing classnames to widgets
@@ -115,6 +116,13 @@ class EditorControl extends React.Component {
     t: PropTypes.func.isRequired,
     isEditorComponent: PropTypes.bool,
     isNewEditorComponent: PropTypes.bool,
+    parentIds: PropTypes.arrayOf(PropTypes.string),
+    entry: ImmutablePropTypes.map.isRequired,
+    collection: ImmutablePropTypes.map.isRequired,
+  };
+
+  static defaultProps = {
+    parentIds: [],
   };
 
   state = {
@@ -123,9 +131,23 @@ class EditorControl extends React.Component {
 
   uniqueFieldId = uniqueId(`${this.props.field.get('name')}-field-`);
 
+  isAncestorOfFieldError = () => {
+    const { fieldsErrors } = this.props;
+
+    if (fieldsErrors && fieldsErrors.size > 0) {
+      return Object.values(fieldsErrors.toJS()).some(arr =>
+        arr.some(err => err.parentIds && err.parentIds.includes(this.uniqueFieldId)),
+      );
+    }
+    return false;
+  };
+
   render() {
     const {
       value,
+      entry,
+      collection,
+      config,
       field,
       fieldsMetaData,
       fieldsErrors,
@@ -150,7 +172,9 @@ class EditorControl extends React.Component {
       isSelected,
       isEditorComponent,
       isNewEditorComponent,
+      parentIds,
       t,
+      validateMetaField,
     } = this.props;
 
     const widgetName = field.get('widget');
@@ -161,6 +185,9 @@ class EditorControl extends React.Component {
     const onValidateObject = onValidate;
     const metadata = fieldsMetaData && fieldsMetaData.get(fieldName);
     const errors = fieldsErrors && fieldsErrors.get(this.uniqueFieldId);
+    const childErrors = this.isAncestorOfFieldError();
+    const hasErrors = !!errors || childErrors;
+
     return (
       <ClassNames>
         {({ css, cx }) => (
@@ -181,7 +208,7 @@ class EditorControl extends React.Component {
             )}
             <FieldLabel
               isActive={isSelected || this.state.styleActive}
-              hasErrors={!!errors}
+              hasErrors={hasErrors}
               htmlFor={this.uniqueFieldId}
             >
               {`${field.get('label', field.get('name'))}${
@@ -201,7 +228,7 @@ class EditorControl extends React.Component {
                 {
                   [css`
                     ${styleStrings.widgetError};
-                  `]: !!errors,
+                  `]: hasErrors,
                 },
               )}
               classNameWidget={css`
@@ -217,12 +244,15 @@ class EditorControl extends React.Component {
                 ${styleStrings.labelActive};
               `}
               controlComponent={widget.control}
+              entry={entry}
+              collection={collection}
+              config={config}
               field={field}
               uniqueFieldId={this.uniqueFieldId}
               value={value}
               mediaPaths={mediaPaths}
               metadata={metadata}
-              onChange={(newValue, newMetadata) => onChange(fieldName, newValue, newMetadata)}
+              onChange={(newValue, newMetadata) => onChange(field, newValue, newMetadata)}
               onValidate={onValidate && partial(onValidate, this.uniqueFieldId)}
               onOpenMediaLibrary={openMediaLibrary}
               onClearMediaControl={clearMediaControl}
@@ -249,10 +279,12 @@ class EditorControl extends React.Component {
               onValidateObject={onValidateObject}
               isEditorComponent={isEditorComponent}
               isNewEditorComponent={isNewEditorComponent}
+              parentIds={parentIds}
               t={t}
+              validateMetaField={validateMetaField}
             />
             {fieldHint && (
-              <ControlHint active={isSelected || this.state.styleActive} error={!!errors}>
+              <ControlHint active={isSelected || this.state.styleActive} error={hasErrors}>
                 {fieldHint}
               </ControlHint>
             )}
@@ -283,10 +315,12 @@ const mapStateToProps = state => {
     mediaPaths: state.mediaLibrary.get('controlMedia'),
     isFetching: state.search.get('isFetching'),
     queryHits: state.search.get('queryHits'),
-    collection,
+    config: state.config,
     entry,
+    collection,
     isLoadingAsset,
     loadEntry,
+    validateMetaField: (field, value, t) => validateMetaField(state, collection, field, value, t),
   };
 };
 

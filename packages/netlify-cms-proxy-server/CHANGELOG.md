@@ -3,6 +3,106 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.3.2 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 1.3.1 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
+# [1.3.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.9...netlify-cms-proxy-server@1.3.0) (2020-07-14)
+
+
+### Bug Fixes
+
+* **proxy-server:** change request logging level to debug ([#3993](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/issues/3993)) ([784c1fe](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/784c1fe4801c89f1908d1b5e96cd7e847ec10fa0))
+
+
+### Features
+
+* **proxy-server:** allow setting proxy log level ([#3989](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/issues/3989)) ([3e0d088](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/3e0d0886d930a17c7b77d995cc0fa628ef3ecdc2))
+
+
+
+
+
+## [1.2.9](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.8...netlify-cms-proxy-server@1.2.9) (2020-06-18)
+
+**Note:** Version bump only for package netlify-cms-proxy-server
+
+
+
+
+
+## [1.2.8](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.7...netlify-cms-proxy-server@1.2.8) (2020-06-01)
+
+**Note:** Version bump only for package netlify-cms-proxy-server
+
+
+
+
+
+## [1.2.7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.6...netlify-cms-proxy-server@1.2.7) (2020-05-19)
+
+
+### Bug Fixes
+
+* **deps:** update dependency simple-git to v2 ([#3730](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/issues/3730)) ([1c7ef1c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/1c7ef1c457612242257d96af53a57c1460e45b31))
+
+
+
+
+
+## [1.2.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.5...netlify-cms-proxy-server@1.2.6) (2020-04-21)
+
+**Note:** Version bump only for package netlify-cms-proxy-server
+
+
+
+
+
+## [1.2.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.4...netlify-cms-proxy-server@1.2.5) (2020-04-14)
+
+**Note:** Version bump only for package netlify-cms-proxy-server
+
+
+
+
+
+## [1.2.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.3...netlify-cms-proxy-server@1.2.4) (2020-04-01)
+
+
+### Bug Fixes
+
+* move common api functions to a separate file ([#3511](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/issues/3511)) ([49098de](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/commit/49098de27f053e51aa3d936d09adae3a7186c6ae))
+
+
+
+
+
+## [1.2.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.2...netlify-cms-proxy-server@1.2.3) (2020-04-01)
+
+**Note:** Version bump only for package netlify-cms-proxy-server
+
+
+
+
+
 ## [1.2.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-proxy-server/compare/netlify-cms-proxy-server@1.2.1...netlify-cms-proxy-server@1.2.2) (2020-03-19)
 
 **Note:** Version bump only for package netlify-cms-proxy-server

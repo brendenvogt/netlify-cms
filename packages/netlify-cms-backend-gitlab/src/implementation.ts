@@ -29,6 +29,10 @@ import {
   blobToFileObj,
   contentKeyFromBranch,
   generateContentKey,
+  localForage,
+  allEntriesByFolder,
+  filterByExtension,
+  branchFromContentKey,
 } from 'netlify-cms-lib-util';
 import AuthenticationPage from './AuthenticationPage';
 import API, { API_NAME } from './API';
@@ -48,6 +52,7 @@ export default class GitLab implements Implementation {
   apiRoot: string;
   token: string | null;
   squashMerges: boolean;
+  cmsLabelPrefix: string;
   mediaFolder: string;
   previewContext: string;
 
@@ -75,9 +80,27 @@ export default class GitLab implements Implementation {
     this.apiRoot = config.backend.api_root || 'https://gitlab.com/api/v4';
     this.token = '';
     this.squashMerges = config.backend.squash_merges || false;
+    this.cmsLabelPrefix = config.backend.cms_label_prefix || '';
     this.mediaFolder = config.media_folder;
     this.previewContext = config.backend.preview_context || '';
     this.lock = asyncLock();
+  }
+
+  isGitBackend() {
+    return true;
+  }
+
+  async status() {
+    const auth =
+      (await this.api
+        ?.user()
+        .then(user => !!user)
+        .catch(e => {
+          console.warn('Failed getting GitLab user', e);
+          return false;
+        })) || false;
+
+    return { auth: { status: auth }, api: { status: true, statusPage: '' } };
   }
 
   authComponent() {
@@ -96,6 +119,7 @@ export default class GitLab implements Implementation {
       repo: this.repo,
       apiRoot: this.apiRoot,
       squashMerges: this.squashMerges,
+      cmsLabelPrefix: this.cmsLabelPrefix,
       initialWorkflowStatus: this.options.initialWorkflowStatus,
     });
     const user = await this.api.user();
@@ -136,7 +160,7 @@ export default class GitLab implements Implementation {
   ) {
     // gitlab paths include the root folder
     const fileFolder = trim(file.path.split(folder)[1] || '/', '/');
-    return file.name.endsWith('.' + extension) && fileFolder.split('/').length <= depth;
+    return filterByExtension(file, extension) && fileFolder.split('/').length <= depth;
   }
 
   async entriesByFolder(folder: string, extension: string, depth: number) {
@@ -148,25 +172,52 @@ export default class GitLab implements Implementation {
         return files.filter(file => this.filterFile(folder, file, extension, depth));
       });
 
-    const files = await entriesByFolder(listFiles, this.api!.readFile.bind(this.api!), API_NAME);
+    const files = await entriesByFolder(
+      listFiles,
+      this.api!.readFile.bind(this.api!),
+      this.api!.readFileMetadata.bind(this.api),
+      API_NAME,
+    );
     // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
     // @ts-ignore
     files[CURSOR_COMPATIBILITY_SYMBOL] = cursor;
     return files;
   }
 
-  async allEntriesByFolder(folder: string, extension: string, depth: number) {
-    const listFiles = () =>
-      this.api!.listAllFiles(folder, depth > 1).then(files =>
-        files.filter(file => this.filterFile(folder, file, extension, depth)),
-      );
+  async listAllFiles(folder: string, extension: string, depth: number) {
+    const files = await this.api!.listAllFiles(folder, depth > 1);
+    const filtered = files.filter(file => this.filterFile(folder, file, extension, depth));
+    return filtered;
+  }
 
-    const files = await entriesByFolder(listFiles, this.api!.readFile.bind(this.api!), API_NAME);
+  async allEntriesByFolder(folder: string, extension: string, depth: number) {
+    const files = await allEntriesByFolder({
+      listAllFiles: () => this.listAllFiles(folder, extension, depth),
+      readFile: this.api!.readFile.bind(this.api!),
+      readFileMetadata: this.api!.readFileMetadata.bind(this.api),
+      apiName: API_NAME,
+      branch: this.branch,
+      localForage,
+      folder,
+      extension,
+      depth,
+      getDefaultBranch: () =>
+        this.api!.getDefaultBranch().then(b => ({ name: b.name, sha: b.commit.id })),
+      isShaExistsInBranch: this.api!.isShaExistsInBranch.bind(this.api!),
+      getDifferences: (to, from) => this.api!.getDifferences(to, from),
+      getFileId: path => this.api!.getFileId(path, this.branch),
+      filterFile: file => this.filterFile(folder, file, extension, depth),
+    });
     return files;
   }
 
   entriesByFiles(files: ImplementationFile[]) {
-    return entriesByFiles(files, this.api!.readFile.bind(this.api!), API_NAME);
+    return entriesByFiles(
+      files,
+      this.api!.readFile.bind(this.api!),
+      this.api!.readFileMetadata.bind(this.api),
+      API_NAME,
+    );
   }
 
   // Fetches a single entry.
@@ -258,12 +309,14 @@ export default class GitLab implements Implementation {
         entries = entries.filter(f => this.filterFile(folder, f, extension, depth));
         newCursor = newCursor.mergeMeta({ folder, extension, depth });
       }
+      const entriesWithData = await entriesByFiles(
+        entries,
+        this.api!.readFile.bind(this.api!),
+        this.api!.readFileMetadata.bind(this.api)!,
+        API_NAME,
+      );
       return {
-        entries: await Promise.all(
-          entries.map(file =>
-            this.api!.readFile(file.path, file.id).then(data => ({ file, data: data as string })),
-          ),
-        ),
+        entries: entriesWithData,
         cursor: newCursor,
       };
     });
@@ -302,34 +355,47 @@ export default class GitLab implements Implementation {
         branches.map(branch => contentKeyFromBranch(branch)),
       );
 
-    const readUnpublishedBranchFile = (contentKey: string) =>
-      this.api!.readUnpublishedBranchFile(contentKey);
-
-    return unpublishedEntries(listEntriesKeys, readUnpublishedBranchFile, API_NAME);
+    const ids = await unpublishedEntries(listEntriesKeys);
+    return ids;
   }
 
-  async unpublishedEntry(
-    collection: string,
-    slug: string,
-    {
-      loadEntryMediaFiles = (branch: string, files: UnpublishedEntryMediaFile[]) =>
-        this.loadEntryMediaFiles(branch, files),
-    } = {},
-  ) {
+  async unpublishedEntry({
+    id,
+    collection,
+    slug,
+  }: {
+    id?: string;
+    collection?: string;
+    slug?: string;
+  }) {
+    if (id) {
+      const data = await this.api!.retrieveUnpublishedEntryData(id);
+      return data;
+    } else if (collection && slug) {
+      const entryId = generateContentKey(collection, slug);
+      const data = await this.api!.retrieveUnpublishedEntryData(entryId);
+      return data;
+    } else {
+      throw new Error('Missing unpublished entry id or collection and slug');
+    }
+  }
+
+  getBranch(collection: string, slug: string) {
     const contentKey = generateContentKey(collection, slug);
-    const data = await this.api!.readUnpublishedBranchFile(contentKey);
-    const mediaFiles = await loadEntryMediaFiles(
-      data.metaData.branch,
-      data.metaData.objects.entry.mediaFiles,
-    );
-    return {
-      slug,
-      file: { path: data.metaData.objects.entry.path, id: null },
-      data: data.fileData as string,
-      metaData: data.metaData,
-      mediaFiles,
-      isModification: data.isModification,
-    };
+    const branch = branchFromContentKey(contentKey);
+    return branch;
+  }
+
+  async unpublishedEntryDataFile(collection: string, slug: string, path: string, id: string) {
+    const branch = this.getBranch(collection, slug);
+    const data = (await this.api!.readFile(path, id, { branch })) as string;
+    return data;
+  }
+
+  async unpublishedEntryMediaFile(collection: string, slug: string, path: string, id: string) {
+    const branch = this.getBranch(collection, slug);
+    const mediaFile = await this.loadMediaFile(branch, { path, id });
+    return mediaFile;
   }
 
   async updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {

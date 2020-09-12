@@ -1,4 +1,9 @@
-import Dropdown, { DropdownItem, DropdownButton, StyledDropdownButton } from './Dropdown';
+import Dropdown, {
+  DropdownItem,
+  DropdownCheckedItem,
+  DropdownButton,
+  StyledDropdownButton,
+} from './Dropdown';
 import Icon from './Icon';
 import ListItemTopBar from './ListItemTopBar';
 import Loader from './Loader';
@@ -21,6 +26,7 @@ import {
   borders,
   transitions,
   effects,
+  zIndex,
   reactSelectStyles,
   GlobalStyles,
 } from './styles';
@@ -28,6 +34,7 @@ import {
 export const NetlifyCmsUiDefault = {
   Dropdown,
   DropdownItem,
+  DropdownCheckedItem,
   DropdownButton,
   StyledDropdownButton,
   ListItemTopBar,
@@ -53,12 +60,14 @@ export const NetlifyCmsUiDefault = {
   borders,
   transitions,
   effects,
+  zIndex,
   reactSelectStyles,
   GlobalStyles,
 };
 export {
   Dropdown,
   DropdownItem,
+  DropdownCheckedItem,
   DropdownButton,
   StyledDropdownButton,
   ListItemTopBar,
@@ -84,6 +93,7 @@ export {
   borders,
   transitions,
   effects,
+  zIndex,
   reactSelectStyles,
   GlobalStyles,
   GoBackButton,

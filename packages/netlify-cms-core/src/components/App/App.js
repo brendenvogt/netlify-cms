@@ -50,7 +50,12 @@ const ErrorCodeBlock = styled.pre`
 `;
 
 const getDefaultPath = collections => {
-  return `/collections/${collections.first().get('name')}`;
+  const first = collections.filter(collection => collection.get('hide') !== true).first();
+  if (first) {
+    return `/collections/${first.get('name')}`;
+  } else {
+    throw new Error('Could not find a non hidden collection');
+  }
 };
 
 const RouteInCollection = ({ collections, render, ...props }) => {
@@ -195,6 +200,18 @@ class App extends React.Component {
           <Switch>
             <Redirect exact from="/" to={defaultPath} />
             <Redirect exact from="/search/" to={defaultPath} />
+            <RouteInCollection
+              exact
+              collections={collections}
+              path="/collections/:name/search/"
+              render={({ match }) => <Redirect to={`/collections/${match.params.name}`} />}
+            />
+            <Redirect
+              // This happens on Identity + Invite Only + External Provider email not matching
+              // the registered user
+              from="/error=access_denied&error_description=Signups+not+allowed+for+this+instance"
+              to={defaultPath}
+            />
             {hasWorkflow ? <Route path="/workflow" component={Workflow} /> : null}
             <RouteInCollection
               exact
@@ -211,6 +228,16 @@ class App extends React.Component {
               path="/collections/:name/entries/*"
               collections={collections}
               render={props => <Editor {...props} />}
+            />
+            <RouteInCollection
+              path="/collections/:name/search/:searchTerm"
+              collections={collections}
+              render={props => <Collection {...props} isSearchResults isSingleSearchResult />}
+            />
+            <RouteInCollection
+              collections={collections}
+              path="/collections/:name/filter/:filterTerm*"
+              render={props => <Collection {...props} />}
             />
             <Route
               path="/search/:searchTerm"

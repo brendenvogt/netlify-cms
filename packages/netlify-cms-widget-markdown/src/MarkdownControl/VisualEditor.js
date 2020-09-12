@@ -7,7 +7,7 @@ import { css as coreCss, ClassNames } from '@emotion/core';
 import { get, isEmpty, debounce } from 'lodash';
 import { Value, Document, Block, Text } from 'slate';
 import { Editor as Slate } from 'slate-react';
-import { lengths, fonts } from 'netlify-cms-ui-default';
+import { lengths, fonts, zIndex } from 'netlify-cms-ui-default';
 import { editorStyleVars, EditorControlBar } from '../styles';
 import { slateToMarkdown, markdownToSlate } from '../serializers';
 import Toolbar from '../MarkdownControl/Toolbar';
@@ -28,7 +28,7 @@ const visualEditorStyles = ({ minimal }) => `
   padding: 0;
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: ${zIndex.zIndex100};
 `;
 
 const InsertionPoint = styled.div`
@@ -116,6 +116,7 @@ export default class Editor extends React.Component {
     value: PropTypes.string,
     field: ImmutablePropTypes.map.isRequired,
     getEditorComponents: PropTypes.func.isRequired,
+    isShowModeToggle: PropTypes.bool.isRequired,
     t: PropTypes.func.isRequired,
   };
 
@@ -177,7 +178,7 @@ export default class Editor extends React.Component {
   };
 
   render() {
-    const { onAddAsset, getAsset, className, field, t } = this.props;
+    const { onAddAsset, getAsset, className, field, isShowModeToggle, t } = this.props;
     return (
       <div
         css={coreCss`
@@ -195,10 +196,11 @@ export default class Editor extends React.Component {
             onAddAsset={onAddAsset}
             getAsset={getAsset}
             buttons={field.get('buttons')}
-            editorComponents={field.get('editorComponents')}
+            editorComponents={field.get('editor_components')}
             hasMark={this.hasMark}
             hasInline={this.hasInline}
             hasBlock={this.hasBlock}
+            isShowModeToggle={isShowModeToggle}
             t={t}
           />
         </EditorControlBar>

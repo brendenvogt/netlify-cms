@@ -3,6 +3,163 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.17.2 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 1.17.1 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
+# [1.17.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.16.0...netlify-cms-locales@1.17.0) (2020-07-14)
+
+
+### Features
+
+* update locale (fr) ([#4002](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/4002)) ([ec58401](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/ec584015005443f3b69022663f7ec0e83847ac10))
+* **locale:** add 'vi' locale 🇻🇳 ([#3981](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3981)) ([f4b2999](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/f4b29998989c7a90a809a6e4e815cbb54dc6a81c))
+
+
+
+
+
+# [1.16.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.15.0...netlify-cms-locales@1.16.0) (2020-06-18)
+
+
+### Bug Fixes
+
+* handle token expiry ([#3847](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3847)) ([285c940](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/285c940562548d7bc88de244123ba87ff66fba65))
+
+
+### Features
+
+* add backend status down indicator ([#3889](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3889)) ([a50edc7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/a50edc70553ad6afa1acee6a51996ad226443f8c))
+* **lang:** add 'th' locale ([#3890](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3890)) ([699526c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/699526c23b0e6ecc7f79da977a93e0d6cf5284d1))
+
+
+
+
+
+# [1.15.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.14.0...netlify-cms-locales@1.15.0) (2020-06-01)
+
+
+### Bug Fixes
+
+* **locale:** update translation strings for 'nl' locale ([#3802](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3802)) ([dd7bced](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/dd7bced09eb7db5bfd27c18609fb769a2ec402a4))
+
+
+### Features
+
+* add filter to collection view ([#3741](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3741)) ([c28cc0c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/c28cc0c9e7c7bc4bed07c02dfb869b2dedab9aab))
+* **lang:** add norwegian ([#3785](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3785)) ([d3aaf4d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/d3aaf4ddb326efcaffdbcc5af5c0e5c8bcaa36ea))
+
+
+
+
+
+# [1.14.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.13.0...netlify-cms-locales@1.14.0) (2020-05-19)
+
+
+### Bug Fixes
+
+* **locale:** Add translation for "download" in mediaLibraryModal ([#3771](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3771)) ([9d6260b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/9d6260bd4b709f95c03ff37587bc2e40485451e5))
+* **locale:** Improve Catalan translation ([#3770](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3770)) ([76b19ea](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/76b19eaca44e435f10fd1cc39ec5a0d2b008950b))
+
+
+### Features
+
+* improve search to target single collections ([#3760](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3760)) ([588622a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/588622adb23df53f9a26914446b0982eddf8f15c))
+* **locale:** add 'sv' locale ([#3724](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3724)) ([5c5f390](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/5c5f3905901a014e94b9ed2b2f8d73377432038f))
+
+
+
+
+
+# [1.13.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.12.0...netlify-cms-locales@1.13.0) (2020-05-04)
+
+
+### Bug Fixes
+
+* locale japanese ([#3668](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3668)) ([5b1353d](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/5b1353d75580ffd5968f2ed5f1978864bdf13e54))
+
+
+### Features
+
+* **locale:** update PT language ([#3669](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3669)) ([b5a242e](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/b5a242ec8ed627e7f5e2ce8af454dd1dda1f71cc))
+
+
+
+
+
+# [1.12.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.11.0...netlify-cms-locales@1.12.0) (2020-04-20)
+
+
+### Bug Fixes
+
+* **locale:** add missing translation strings for 'es' locale ([#3626](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3626)) ([f88c83b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/f88c83b97a18d9094240b688739d8b2909f19b0c))
+
+
+### Features
+
+* add-download-button closes [#3429](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3429) ([#3609](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3609)) ([cf25260](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/cf252605ad8fee6f3d307302dc50759813ee765c))
+
+
+
+
+
+# [1.11.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.10.3...netlify-cms-locales@1.11.0) (2020-04-14)
+
+
+### Features
+
+* **widget-datetime:** add now to datepicker ([#3484](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3484)) ([79b8469](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/79b8469337dade3bd7472b3f42b826efc7e0987d))
+
+
+
+
+
+## [1.10.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.10.2...netlify-cms-locales@1.10.3) (2020-04-06)
+
+**Note:** Version bump only for package netlify-cms-locales
+
+
+
+
+
+## [1.10.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.10.1...netlify-cms-locales@1.10.2) (2020-04-01)
+
+**Note:** Version bump only for package netlify-cms-locales
+
+
+
+
+
+## [1.10.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.10.0...netlify-cms-locales@1.10.1) (2020-03-30)
+
+
+### Bug Fixes
+
+* **locale:** Fix czech locale ([#3493](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3493)) ([bae6a2b](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/bae6a2b68aa5b5cd2cae5dc4f466ce2e4ea49ebc))
+* update error boundary about GitHub issue data ([#3471](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/issues/3471)) ([42d60a6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/commit/42d60a644c58e01da72eb16c1cc20d93e0d70e13))
+
+
+
+
+
 # [1.10.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-locales/compare/netlify-cms-locales@1.9.4...netlify-cms-locales@1.10.0) (2020-03-13)
 
 

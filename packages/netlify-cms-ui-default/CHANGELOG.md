@@ -3,6 +3,87 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.11.3 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 2.11.2 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
+## [2.11.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.11.0...netlify-cms-ui-default@2.11.1) (2020-06-18)
+
+**Note:** Version bump only for package netlify-cms-ui-default
+
+
+
+
+
+# [2.11.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.10.1...netlify-cms-ui-default@2.11.0) (2020-06-01)
+
+
+### Features
+
+* add filter to collection view ([#3741](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/issues/3741)) ([c28cc0c](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/commit/c28cc0c9e7c7bc4bed07c02dfb869b2dedab9aab))
+
+
+
+
+
+## [2.10.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.10.0...netlify-cms-ui-default@2.10.1) (2020-05-04)
+
+**Note:** Version bump only for package netlify-cms-ui-default
+
+
+
+
+
+# [2.10.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.9.5...netlify-cms-ui-default@2.10.0) (2020-04-14)
+
+
+### Bug Fixes
+
+* increase DropdownList z-index ([#3579](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/issues/3579)) ([7fcdaef](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/commit/7fcdaef1c92c65d981ac2ebc1077d8da0c3ca285))
+
+
+### Features
+
+* **widget-datetime:** add now to datepicker ([#3484](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/issues/3484)) ([79b8469](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/commit/79b8469337dade3bd7472b3f42b826efc7e0987d))
+
+
+
+
+
+## [2.9.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.9.4...netlify-cms-ui-default@2.9.5) (2020-04-01)
+
+**Note:** Version bump only for package netlify-cms-ui-default
+
+
+
+
+
+## [2.9.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.9.3...netlify-cms-ui-default@2.9.4) (2020-03-30)
+
+**Note:** Version bump only for package netlify-cms-ui-default
+
+
+
+
+
 ## [2.9.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-ui-default/compare/netlify-cms-ui-default@2.9.2...netlify-cms-ui-default@2.9.3) (2020-03-12)
 
 

@@ -5,26 +5,30 @@ import {
   retrieveLocalBackup,
   persistLocalBackup,
   getMediaAssets,
+  validateMetaField,
 } from '../entries';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import AssetProxy from '../../valueObjects/AssetProxy';
 
 jest.mock('coreSrc/backend');
-jest.mock('../media', () => {
-  const media = jest.requireActual('../media');
-  return {
-    ...media,
-    getAsset: jest.fn(),
-  };
-});
 jest.mock('netlify-cms-lib-util');
 jest.mock('../mediaLibrary');
+jest.mock('../../reducers/entries');
+jest.mock('../../reducers/entryDraft');
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
 
 describe('entries', () => {
   describe('createEmptyDraft', () => {
+    const { currentBackend } = require('coreSrc/backend');
+    const backend = {
+      processEntry: jest.fn((_state, _collection, entry) => Promise.resolve(entry)),
+    };
+
+    currentBackend.mockReturnValue(backend);
+
     beforeEach(() => {
       jest.clearAllMocks();
     });
@@ -41,16 +45,19 @@ describe('entries', () => {
 
         expect(actions[0]).toEqual({
           payload: {
+            author: '',
             collection: undefined,
             data: {},
+            meta: {},
             isModification: null,
             label: null,
-            mediaFiles: fromJS([]),
-            metaData: null,
+            mediaFiles: [],
             partial: false,
             path: '',
             raw: '',
             slug: '',
+            status: '',
+            updatedOn: '',
           },
           type: 'DRAFT_CREATE_EMPTY',
         });
@@ -70,16 +77,19 @@ describe('entries', () => {
 
         expect(actions[0]).toEqual({
           payload: {
+            author: '',
             collection: undefined,
             data: { title: 'title', boolean: true },
+            meta: {},
             isModification: null,
             label: null,
-            mediaFiles: fromJS([]),
-            metaData: null,
+            mediaFiles: [],
             partial: false,
             path: '',
             raw: '',
             slug: '',
+            status: '',
+            updatedOn: '',
           },
           type: 'DRAFT_CREATE_EMPTY',
         });
@@ -101,16 +111,19 @@ describe('entries', () => {
 
           expect(actions[0]).toEqual({
             payload: {
+              author: '',
               collection: undefined,
               data: { title: '&lt;script&gt;alert(&#039;hello&#039;)&lt;/script&gt;' },
+              meta: {},
               isModification: null,
               label: null,
-              mediaFiles: fromJS([]),
-              metaData: null,
+              mediaFiles: [],
               partial: false,
               path: '',
               raw: '',
               slug: '',
+              status: '',
+              updatedOn: '',
             },
             type: 'DRAFT_CREATE_EMPTY',
           });
@@ -118,6 +131,60 @@ describe('entries', () => {
     });
   });
   describe('createEmptyDraftData', () => {
+    it('should allow an empty array as list default for a single field list', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [],
+          field: { name: 'url', widget: 'text' },
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({ images: fromJS([]) });
+    });
+
+    it('should allow an empty array as list default for a fields list', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [],
+          fields: [
+            { name: 'title', widget: 'text' },
+            { name: 'url', widget: 'text' },
+          ],
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({ images: fromJS([]) });
+    });
+
+    it('should not allow setting a non empty array as a default value for a single field list', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [{ name: 'url' }, { other: 'field' }],
+          field: { name: 'url', widget: 'text' },
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({});
+    });
+
+    it('should not allow setting a non empty array as a default value for a fields list', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [{ name: 'url' }, { other: 'field' }],
+          fields: [
+            { name: 'title', widget: 'text' },
+            { name: 'url', widget: 'text' },
+          ],
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({});
+    });
+
     it('should set default value for list field widget', () => {
       const fields = fromJS([
         {
@@ -129,11 +196,40 @@ describe('entries', () => {
       expect(createEmptyDraftData(fields)).toEqual({ images: ['https://image.png'] });
     });
 
+    it('should override list default with field default', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [],
+          field: { name: 'url', widget: 'text', default: 'https://image.png' },
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({ images: ['https://image.png'] });
+    });
+
     it('should set default values for list fields widget', () => {
       const fields = fromJS([
         {
           name: 'images',
           widget: 'list',
+          fields: [
+            { name: 'title', widget: 'text', default: 'default image' },
+            { name: 'url', widget: 'text', default: 'https://image.png' },
+          ],
+        },
+      ]);
+      expect(createEmptyDraftData(fields)).toEqual({
+        images: [{ title: 'default image', url: 'https://image.png' }],
+      });
+    });
+
+    it('should override list default with fields default', () => {
+      const fields = fromJS([
+        {
+          name: 'images',
+          widget: 'list',
+          default: [],
           fields: [
             { name: 'title', widget: 'text', default: 'default image' },
             { name: 'url', widget: 'text', default: 'https://image.png' },
@@ -286,20 +382,177 @@ describe('entries', () => {
       jest.clearAllMocks();
     });
 
-    it('should map mediaFiles to assets', async () => {
-      const { getAsset } = require('../media');
+    it('should map mediaFiles to assets', () => {
       const mediaFiles = fromJS([{ path: 'path1' }, { path: 'path2', draft: true }]);
 
-      const asset = { path: 'path1' };
-
-      getAsset.mockReturnValue(() => asset);
-
-      const collection = Map();
       const entry = Map({ mediaFiles });
-      await expect(getMediaAssets({ entry, collection })).resolves.toEqual([asset]);
+      expect(getMediaAssets({ entry })).toEqual([new AssetProxy({ path: 'path2' })]);
+    });
+  });
 
-      expect(getAsset).toHaveBeenCalledTimes(1);
-      expect(getAsset).toHaveBeenCalledWith({ collection, path: 'path2', entry });
+  describe('validateMetaField', () => {
+    const state = {
+      config: fromJS({
+        slug: {
+          encoding: 'unicode',
+          clean_accents: false,
+          sanitize_replacement: '-',
+        },
+      }),
+      entries: fromJS([]),
+    };
+    const collection = fromJS({
+      folder: 'folder',
+      type: 'folder_based_collection',
+      name: 'name',
+    });
+    const t = jest.fn((key, args) => ({ key, args }));
+
+    const { selectCustomPath } = require('../../reducers/entryDraft');
+    const { selectEntryByPath } = require('../../reducers/entries');
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should not return error on non meta field', () => {
+      expect(validateMetaField(null, null, fromJS({}), null, t)).toEqual({ error: false });
+    });
+
+    it('should not return error on meta path field', () => {
+      expect(
+        validateMetaField(null, null, fromJS({ meta: true, name: 'other' }), null, t),
+      ).toEqual({ error: false });
+    });
+
+    it('should return error on empty path', () => {
+      expect(validateMetaField(null, null, fromJS({ meta: true, name: 'path' }), null, t)).toEqual({
+        error: {
+          message: {
+            key: 'editor.editorControlPane.widget.invalidPath',
+            args: { path: null },
+          },
+          type: 'CUSTOM',
+        },
+      });
+
+      expect(
+        validateMetaField(null, null, fromJS({ meta: true, name: 'path' }), undefined, t),
+      ).toEqual({
+        error: {
+          message: {
+            key: 'editor.editorControlPane.widget.invalidPath',
+            args: { path: undefined },
+          },
+          type: 'CUSTOM',
+        },
+      });
+
+      expect(validateMetaField(null, null, fromJS({ meta: true, name: 'path' }), '', t)).toEqual({
+        error: {
+          message: {
+            key: 'editor.editorControlPane.widget.invalidPath',
+            args: { path: '' },
+          },
+          type: 'CUSTOM',
+        },
+      });
+    });
+
+    it('should return error on invalid path', () => {
+      expect(
+        validateMetaField(state, null, fromJS({ meta: true, name: 'path' }), 'invalid path', t),
+      ).toEqual({
+        error: {
+          message: {
+            key: 'editor.editorControlPane.widget.invalidPath',
+            args: { path: 'invalid path' },
+          },
+          type: 'CUSTOM',
+        },
+      });
+    });
+
+    it('should return error on existing path', () => {
+      selectCustomPath.mockReturnValue('existing-path');
+      selectEntryByPath.mockReturnValue(fromJS({ path: 'existing-path' }));
+      expect(
+        validateMetaField(
+          {
+            ...state,
+            entryDraft: fromJS({
+              entry: {},
+            }),
+          },
+          collection,
+          fromJS({ meta: true, name: 'path' }),
+          'existing-path',
+          t,
+        ),
+      ).toEqual({
+        error: {
+          message: {
+            key: 'editor.editorControlPane.widget.pathExists',
+            args: { path: 'existing-path' },
+          },
+          type: 'CUSTOM',
+        },
+      });
+
+      expect(selectCustomPath).toHaveBeenCalledTimes(1);
+      expect(selectCustomPath).toHaveBeenCalledWith(
+        collection,
+        fromJS({ entry: { meta: { path: 'existing-path' } } }),
+      );
+
+      expect(selectEntryByPath).toHaveBeenCalledTimes(1);
+      expect(selectEntryByPath).toHaveBeenCalledWith(
+        state.entries,
+        collection.get('name'),
+        'existing-path',
+      );
+    });
+
+    it('should not return error on non existing path for new entry', () => {
+      selectCustomPath.mockReturnValue('non-existing-path');
+      selectEntryByPath.mockReturnValue(undefined);
+      expect(
+        validateMetaField(
+          {
+            ...state,
+            entryDraft: fromJS({
+              entry: {},
+            }),
+          },
+          collection,
+          fromJS({ meta: true, name: 'path' }),
+          'non-existing-path',
+          t,
+        ),
+      ).toEqual({
+        error: false,
+      });
+    });
+
+    it('should not return error when for existing entry', () => {
+      selectCustomPath.mockReturnValue('existing-path');
+      selectEntryByPath.mockReturnValue(fromJS({ path: 'existing-path' }));
+      expect(
+        validateMetaField(
+          {
+            ...state,
+            entryDraft: fromJS({
+              entry: { path: 'existing-path' },
+            }),
+          },
+          collection,
+          fromJS({ meta: true, name: 'path' }),
+          'existing-path',
+          t,
+        ),
+      ).toEqual({
+        error: false,
+      });
     });
   });
 });

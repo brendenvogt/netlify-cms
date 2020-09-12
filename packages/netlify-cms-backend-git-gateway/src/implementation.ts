@@ -18,12 +18,13 @@ import {
   entriesByFiles,
   Config,
   ImplementationFile,
-  UnpublishedEntryMediaFile,
   parsePointerFile,
   getLargeMediaPatternsFromGitAttributesFile,
   getPointerFileForMediaFileObj,
   getLargeMediaFilteredMediaFiles,
   DisplayURLObject,
+  AccessTokenError,
+  PreviewState,
 } from 'netlify-cms-lib-util';
 import { GitHubBackend } from 'netlify-cms-backend-github';
 import { GitLabBackend } from 'netlify-cms-backend-gitlab';
@@ -33,9 +34,33 @@ import GitLabAPI from './GitLabAPI';
 import AuthenticationPage from './AuthenticationPage';
 import { getClient, Client } from './netlify-lfs-client';
 
+const STATUS_PAGE = 'https://www.netlifystatus.com';
+const GIT_GATEWAY_STATUS_ENDPOINT = `${STATUS_PAGE}/api/v2/components.json`;
+const GIT_GATEWAY_OPERATIONAL_UNITS = ['Git Gateway'];
+type GitGatewayStatus = {
+  id: string;
+  name: string;
+  status: string;
+};
+
+type NetlifyIdentity = {
+  logout: () => void;
+  currentUser: () => User;
+  on: (event: string, args: unknown) => void;
+  init: () => void;
+  store: { user: unknown; modal: { page: string }; saving: boolean };
+};
+
+type AuthClient = {
+  logout: () => void;
+  currentUser: () => unknown;
+  login?(email: string, password: string, remember?: boolean): Promise<unknown>;
+  clearStore: () => void;
+};
+
 declare global {
   interface Window {
-    netlifyIdentity?: { gotrue: GoTrue; logout: () => void };
+    netlifyIdentity?: NetlifyIdentity;
   }
 }
 
@@ -69,23 +94,52 @@ function getEndpoint(endpoint: string, netlifySiteURL: string | null) {
   return endpoint;
 }
 
+// wait for identity widget to initialize
+// force init on timeout
+let initPromise = Promise.resolve() as Promise<unknown>;
+if (window.netlifyIdentity) {
+  let initialized = false;
+  initPromise = Promise.race([
+    new Promise(resolve => {
+      window.netlifyIdentity?.on('init', () => {
+        initialized = true;
+        resolve();
+      });
+    }),
+    new Promise(resolve => setTimeout(resolve, 2500)).then(() => {
+      if (!initialized) {
+        console.log('Manually initializing identity widget');
+        window.netlifyIdentity?.init();
+      }
+    }),
+  ]);
+}
+
 interface NetlifyUser extends Credentials {
   jwt: () => Promise<string>;
   email: string;
   user_metadata: { full_name: string; avatar_url: string };
 }
 
+const apiGet = async (path: string) => {
+  const apiRoot = 'https://api.netlify.com/api/v1/sites';
+  const response = await fetch(`${apiRoot}/${path}`).then(res => res.json());
+  return response;
+};
+
 export default class GitGateway implements Implementation {
   config: Config;
   api?: GitHubAPI | GitLabAPI | BitBucketAPI;
   branch: string;
   squashMerges: boolean;
+  cmsLabelPrefix: string;
   mediaFolder: string;
   transformImages: boolean;
   gatewayUrl: string;
   netlifyLargeMediaURL: string;
   backendType: string | null;
-  authClient: GoTrue;
+  apiUrl: string;
+  authClient?: AuthClient;
   backend: GitHubBackend | GitLabBackend | BitbucketBackend | null;
   acceptRoles?: string[];
   tokenPromise?: () => Promise<string>;
@@ -106,11 +160,12 @@ export default class GitGateway implements Implementation {
     this.config = config;
     this.branch = config.backend.branch?.trim() || 'master';
     this.squashMerges = config.backend.squash_merges || false;
+    this.cmsLabelPrefix = config.backend.cms_label_prefix || '';
     this.mediaFolder = config.media_folder;
     this.transformImages = config.backend.use_large_media_transforms_in_media_library || true;
 
     const netlifySiteURL = localStorage.getItem('netlifySiteURL');
-    const APIUrl = getEndpoint(config.backend.identity_url || defaults.identity, netlifySiteURL);
+    this.apiUrl = getEndpoint(config.backend.identity_url || defaults.identity, netlifySiteURL);
     this.gatewayUrl = getEndpoint(config.backend.gateway_url || defaults.gateway, netlifySiteURL);
     this.netlifyLargeMediaURL = getEndpoint(
       config.backend.large_media_url || defaults.largeMedia,
@@ -125,12 +180,77 @@ export default class GitGateway implements Implementation {
       this.backendType = null;
     }
 
-    this.authClient = window.netlifyIdentity
-      ? window.netlifyIdentity.gotrue
-      : new GoTrue({ APIUrl });
-    AuthenticationPage.authClient = this.authClient;
-
     this.backend = null;
+    AuthenticationPage.authClient = () => this.getAuthClient();
+  }
+
+  isGitBackend() {
+    return true;
+  }
+
+  async status() {
+    const api = await fetch(GIT_GATEWAY_STATUS_ENDPOINT)
+      .then(res => res.json())
+      .then(res => {
+        return res['components']
+          .filter((statusComponent: GitGatewayStatus) =>
+            GIT_GATEWAY_OPERATIONAL_UNITS.includes(statusComponent.name),
+          )
+          .every((statusComponent: GitGatewayStatus) => statusComponent.status === 'operational');
+      })
+      .catch(e => {
+        console.warn('Failed getting Git Gateway status', e);
+        return true;
+      });
+
+    let auth = false;
+    // no need to check auth if api is down
+    if (api) {
+      auth =
+        (await this.tokenPromise?.()
+          .then(token => !!token)
+          .catch(e => {
+            console.warn('Failed getting Identity token', e);
+            return false;
+          })) || false;
+    }
+
+    return { auth: { status: auth }, api: { status: api, statusPage: STATUS_PAGE } };
+  }
+
+  async getAuthClient() {
+    if (this.authClient) {
+      return this.authClient;
+    }
+    await initPromise;
+    if (window.netlifyIdentity) {
+      this.authClient = {
+        logout: () => window.netlifyIdentity?.logout(),
+        currentUser: () => window.netlifyIdentity?.currentUser(),
+        clearStore: () => {
+          const store = window.netlifyIdentity?.store;
+          if (store) {
+            store.user = null;
+            store.modal.page = 'login';
+            store.saving = false;
+          }
+        },
+      };
+    } else {
+      const goTrue = new GoTrue({ APIUrl: this.apiUrl });
+      this.authClient = {
+        logout: () => {
+          const user = goTrue.currentUser();
+          if (user) {
+            return user.logout();
+          }
+        },
+        currentUser: () => goTrue.currentUser(),
+        login: goTrue.login.bind(goTrue),
+        clearStore: () => undefined,
+      };
+    }
+    return this.authClient;
   }
 
   requestFunction = (req: ApiRequest) =>
@@ -142,7 +262,15 @@ export default class GitGateway implements Implementation {
 
   authenticate(credentials: Credentials) {
     const user = credentials as NetlifyUser;
-    this.tokenPromise = user.jwt.bind(user);
+    this.tokenPromise = async () => {
+      try {
+        const func = user.jwt.bind(user);
+        const token = await func();
+        return token;
+      } catch (error) {
+        throw new AccessTokenError(`Failed getting access token: ${error.message}`);
+      }
+    };
     return this.tokenPromise!().then(async token => {
       if (!this.backendType) {
         const {
@@ -150,30 +278,31 @@ export default class GitGateway implements Implementation {
           gitlab_enabled: gitlabEnabled,
           bitbucket_enabled: bitbucketEnabled,
           roles,
-        } = await fetch(`${this.gatewayUrl}/settings`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then(async res => {
-          const contentType = res.headers.get('Content-Type') || '';
-          if (!contentType.includes('application/json') && !contentType.includes('text/json')) {
-            throw new APIError(
-              `Your Git Gateway backend is not returning valid settings. Please make sure it is enabled.`,
-              res.status,
-              'Git Gateway',
-            );
-          }
+        } = await unsentRequest
+          .fetchWithTimeout(`${this.gatewayUrl}/settings`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then(async res => {
+            const contentType = res.headers.get('Content-Type') || '';
+            if (!contentType.includes('application/json') && !contentType.includes('text/json')) {
+              throw new APIError(
+                `Your Git Gateway backend is not returning valid settings. Please make sure it is enabled.`,
+                res.status,
+                'Git Gateway',
+              );
+            }
+            const body = await res.json();
 
-          const body = await res.json();
+            if (!res.ok) {
+              throw new APIError(
+                `Git Gateway Error: ${body.message ? body.message : body}`,
+                res.status,
+                'Git Gateway',
+              );
+            }
 
-          if (!res.ok) {
-            throw new APIError(
-              `Git Gateway Error: ${body.message ? body.message : body}`,
-              res.status,
-              'Git Gateway',
-            );
-          }
-
-          return body;
-        });
+            return body;
+          });
         this.acceptRoles = roles;
         if (githubEnabled) {
           this.backendType = 'github';
@@ -205,6 +334,7 @@ export default class GitGateway implements Implementation {
         tokenPromise: this.tokenPromise!,
         commitAuthor: pick(userData, ['name', 'email']),
         squashMerges: this.squashMerges,
+        cmsLabelPrefix: this.cmsLabelPrefix,
         initialWorkflowStatus: this.options.initialWorkflowStatus,
       };
 
@@ -229,8 +359,9 @@ export default class GitGateway implements Implementation {
       return { name: userData.name, login: userData.email } as User;
     });
   }
-  restoreUser() {
-    const user = this.authClient && this.authClient.currentUser();
+  async restoreUser() {
+    const client = await this.getAuthClient();
+    const user = client.currentUser();
     if (!user) return Promise.reject();
     return this.authenticate(user as Credentials);
   }
@@ -238,18 +369,21 @@ export default class GitGateway implements Implementation {
     return AuthenticationPage;
   }
 
-  logout() {
-    if (window.netlifyIdentity) {
-      return window.netlifyIdentity.logout();
+  async logout() {
+    const client = await this.getAuthClient();
+    try {
+      client.logout();
+    } catch (e) {
+      // due to a bug in the identity widget (gotrue-js actually) the store is not reset if logout fails
+      // TODO: remove after https://github.com/netlify/gotrue-js/pull/83 is merged
+      client.clearStore();
     }
-    const user = this.authClient.currentUser();
-    return user && user.logout();
   }
   getToken() {
     return this.tokenPromise!();
   }
 
-  entriesByFolder(folder: string, extension: string, depth: number) {
+  async entriesByFolder(folder: string, extension: string, depth: number) {
     return this.backend!.entriesByFolder(folder, extension, depth);
   }
   allEntriesByFolder(folder: string, extension: string, depth: number) {
@@ -262,34 +396,27 @@ export default class GitGateway implements Implementation {
     return this.backend!.getEntry(path);
   }
 
-  async loadEntryMediaFiles(branch: string, files: UnpublishedEntryMediaFile[]) {
+  async unpublishedEntryDataFile(collection: string, slug: string, path: string, id: string) {
+    return this.backend!.unpublishedEntryDataFile(collection, slug, path, id);
+  }
+
+  async unpublishedEntryMediaFile(collection: string, slug: string, path: string, id: string) {
     const client = await this.getLargeMediaClient();
-    const backend = this.backend as GitLabBackend | GitHubBackend;
-    if (!client.enabled) {
-      return backend!.loadEntryMediaFiles(branch, files);
+    if (client.enabled && client.matchPath(path)) {
+      const branch = this.backend!.getBranch(collection, slug);
+      const url = await this.getLargeMediaDisplayURL({ path, id }, branch);
+      return {
+        id,
+        name: basename(path),
+        path,
+        url,
+        displayURL: url,
+        file: new File([], name),
+        size: 0,
+      };
+    } else {
+      return this.backend!.unpublishedEntryMediaFile(collection, slug, path, id);
     }
-
-    const mediaFiles = await Promise.all(
-      files.map(async file => {
-        if (client.matchPath(file.path)) {
-          const { path, id } = file;
-          const url = await this.getLargeMediaDisplayURL({ path, id }, branch);
-          return {
-            id,
-            name: basename(path),
-            path,
-            url,
-            displayURL: url,
-            file: new File([], name),
-            size: 0,
-          };
-        } else {
-          return backend!.loadMediaFile(branch, file);
-        }
-      }),
-    );
-
-    return mediaFiles;
   }
 
   getMedia(mediaFolder = this.mediaFolder) {
@@ -309,7 +436,9 @@ export default class GitGateway implements Implementation {
     const netlifyLargeMediaEnabledPromise = this.api!.readFile('.lfsconfig')
       .then(config => ini.decode<{ lfs: { url: string } }>(config as string))
       .then(({ lfs: { url } }) => new URL(url))
-      .then(lfsURL => ({ enabled: lfsURL.hostname.endsWith('netlify.com') }))
+      .then(lfsURL => ({
+        enabled: lfsURL.hostname.endsWith('netlify.com') || lfsURL.hostname.endsWith('netlify.app'),
+      }))
       .catch((err: Error) => ({ enabled: false, err }));
 
     const lfsPatternsPromise = this.api!.readFile('.gitattributes')
@@ -357,7 +486,12 @@ export default class GitGateway implements Implementation {
       { parseText }: { parseText: boolean },
     ) => this.api!.readFile(path, id, { branch, parseText });
 
-    const items = await entriesByFiles([{ path, id }], readFile, 'Git-Gateway');
+    const items = await entriesByFiles(
+      [{ path, id }],
+      readFile,
+      this.api!.readFileMetadata.bind(this.api),
+      'Git-Gateway',
+    );
     const entry = items[0];
     const pointerFile = parsePointerFile(entry.data);
     if (!pointerFile.sha) {
@@ -374,21 +508,15 @@ export default class GitGateway implements Implementation {
     const { path, id } = displayURL as DisplayURLObject;
     const client = await this.getLargeMediaClient();
     if (client.enabled && client.matchPath(path)) {
-      return this.getLargeMediaDisplayURL({ path, id });
+      const largeMediaUrl = await this.getLargeMediaDisplayURL({ path, id });
+      return largeMediaUrl;
     }
     if (typeof displayURL === 'string') {
       return displayURL;
     }
-    if (this.backend!.getMediaDisplayURL) {
-      return this.backend!.getMediaDisplayURL(displayURL);
-    }
-    const err = new Error(
-      `getMediaDisplayURL is not implemented by the ${this.backendType} backend, but the backend returned a displayURL which was not a string!`,
-    ) as Error & {
-      displayURL: DisplayURL;
-    };
-    err.displayURL = displayURL;
-    return Promise.reject(err);
+
+    const url = await this.backend!.getMediaDisplayURL(displayURL);
+    return url;
   }
 
   async getMediaFile(path: string) {
@@ -434,15 +562,38 @@ export default class GitGateway implements Implementation {
     return this.backend!.deleteFile(path, commitMessage);
   }
   async getDeployPreview(collection: string, slug: string) {
-    return this.backend!.getDeployPreview(collection, slug);
+    let preview = await this.backend!.getDeployPreview(collection, slug);
+    if (!preview) {
+      try {
+        // if the commit doesn't have a status, try to use Netlify API directly
+        // this is useful when builds are queue up in Netlify and don't have a commit status yet
+        // and only works with public logs at the moment
+        // TODO: get Netlify API Token and use it to access private logs
+        const siteId = new URL(localStorage.getItem('netlifySiteURL') || '').hostname;
+        const site = await apiGet(siteId);
+        const deploys: { state: string; commit_ref: string; deploy_url: string }[] = await apiGet(
+          `${site.id}/deploys?per_page=100`,
+        );
+        if (deploys.length > 0) {
+          const ref = await this.api!.getUnpublishedEntrySha(collection, slug);
+          const deploy = deploys.find(d => d.commit_ref === ref);
+          if (deploy) {
+            preview = {
+              status: deploy.state === 'ready' ? PreviewState.Success : PreviewState.Other,
+              url: deploy.deploy_url,
+            };
+          }
+        }
+        // eslint-disable-next-line no-empty
+      } catch (e) {}
+    }
+    return preview;
   }
   unpublishedEntries() {
     return this.backend!.unpublishedEntries();
   }
-  unpublishedEntry(collection: string, slug: string) {
-    return this.backend!.unpublishedEntry(collection, slug, {
-      loadEntryMediaFiles: (branch, files) => this.loadEntryMediaFiles(branch, files),
-    });
+  unpublishedEntry({ id, collection, slug }: { id?: string; collection?: string; slug?: string }) {
+    return this.backend!.unpublishedEntry({ id, collection, slug });
   }
   updateUnpublishedEntryStatus(collection: string, slug: string, newStatus: string) {
     return this.backend!.updateUnpublishedEntryStatus(collection, slug, newStatus);

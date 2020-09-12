@@ -1,6 +1,6 @@
 import { Action } from 'redux';
 import { StaticallyTypedRecord } from './immutable';
-import { Map, List } from 'immutable';
+import { Map, List, OrderedMap } from 'immutable';
 import AssetProxy from '../valueObjects/AssetProxy';
 import { MediaFile as BackendMediaFile } from '../backend';
 
@@ -52,11 +52,30 @@ type Pages = StaticallyTypedRecord<PagesObject>;
 
 type EntitiesObject = { [key: string]: EntryMap };
 
+export enum SortDirection {
+  Ascending = 'Ascending',
+  Descending = 'Descending',
+  None = 'None',
+}
+
+export type SortObject = { key: string; direction: SortDirection };
+
+export type SortMap = OrderedMap<string, StaticallyTypedRecord<SortObject>>;
+
+export type Sort = Map<string, SortMap>;
+
+export type FilterMap = StaticallyTypedRecord<ViewFilter & { active: boolean }>;
+
+export type Filter = Map<string, Map<string, FilterMap>>; // collection.field.active
+
 export type Entities = StaticallyTypedRecord<EntitiesObject>;
 
 export type Entries = StaticallyTypedRecord<{
   pages: Pages & PagesObject;
   entities: Entities & EntitiesObject;
+  sort: Sort;
+  filter: Filter;
+  viewStyle: string;
 }>;
 
 export type Deploys = StaticallyTypedRecord<{}>;
@@ -75,7 +94,10 @@ export type EntryObject = {
   collection: string;
   mediaFiles: List<MediaFileMap>;
   newRecord: boolean;
-  metaData: { status: string };
+  author?: string;
+  updatedOn?: string;
+  status: string;
+  meta: StaticallyTypedRecord<{ path: string }>;
 };
 
 export type EntryMap = StaticallyTypedRecord<EntryObject>;
@@ -87,6 +109,7 @@ export type FieldsErrors = StaticallyTypedRecord<{ [field: string]: { type: stri
 export type EntryDraft = StaticallyTypedRecord<{
   entry: Entry;
   fieldsErrors: FieldsErrors;
+  fieldsMetaData?: Map<string, Map<string, string>>;
 }>;
 
 export type EntryField = StaticallyTypedRecord<{
@@ -95,9 +118,11 @@ export type EntryField = StaticallyTypedRecord<{
   types?: List<EntryField>;
   widget: string;
   name: string;
-  default: string | null | boolean;
+  default: string | null | boolean | List<unknown>;
   media_folder?: string;
   public_folder?: string;
+  comment?: string;
+  meta?: boolean;
 }>;
 
 export type EntryFields = List<EntryField>;
@@ -117,6 +142,24 @@ export type CollectionFile = StaticallyTypedRecord<{
 }>;
 
 export type CollectionFiles = List<CollectionFile>;
+
+export type ViewFilter = {
+  label: string;
+  field: string;
+  pattern: string;
+  id: string;
+};
+type NestedObject = { depth: number };
+
+type Nested = StaticallyTypedRecord<NestedObject>;
+
+type PathObject = { label: string; widget: string; index_file: string };
+
+type MetaObject = {
+  path?: StaticallyTypedRecord<PathObject>;
+};
+
+type Meta = StaticallyTypedRecord<MetaObject>;
 
 type CollectionObject = {
   name: string;
@@ -140,6 +183,10 @@ type CollectionObject = {
   slug?: string;
   label_singular?: string;
   label: string;
+  sortable_fields: List<string>;
+  view_filters: List<StaticallyTypedRecord<ViewFilter>>;
+  nested?: Nested;
+  meta?: Meta;
 };
 
 export type Collection = StaticallyTypedRecord<CollectionObject>;
@@ -201,9 +248,20 @@ interface SearchItem {
   slug: string;
 }
 
-export type Search = StaticallyTypedRecord<{ entryIds?: SearchItem[] }>;
+export type Search = StaticallyTypedRecord<{
+  entryIds?: SearchItem[];
+  isFetching: boolean;
+  term: string | null;
+  collections: List<string> | null;
+  page: number;
+}>;
 
 export type Cursors = StaticallyTypedRecord<{}>;
+
+export type Status = StaticallyTypedRecord<{
+  isFetching: boolean;
+  status: StaticallyTypedRecord<{ auth: boolean }>;
+}>;
 
 export interface State {
   config: Config;
@@ -217,6 +275,8 @@ export interface State {
   medias: Medias;
   mediaLibrary: MediaLibrary;
   search: Search;
+  notifs: { message: { key: string }; kind: string; id: number }[];
+  status: Status;
 }
 
 export interface MediasAction extends Action<string> {
@@ -268,6 +328,33 @@ export interface EntriesSuccessPayload extends EntryPayload {
   entries: EntryObject[];
   append: boolean;
   page: number;
+}
+export interface EntriesSortRequestPayload extends EntryPayload {
+  key: string;
+  direction: string;
+}
+
+export interface EntriesSortFailurePayload extends EntriesSortRequestPayload {
+  error: Error;
+}
+
+export interface EntriesFilterRequestPayload {
+  filter: ViewFilter;
+  collection: string;
+}
+
+export interface EntriesFilterFailurePayload {
+  filter: ViewFilter;
+  collection: string;
+  error: Error;
+}
+
+export interface ChangeViewStylePayload {
+  style: string;
+}
+
+export interface EntriesMoveSuccessPayload extends EntryPayload {
+  entries: EntryObject[];
 }
 
 export interface EntriesAction extends Action<string> {

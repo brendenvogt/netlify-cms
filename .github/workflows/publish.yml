@@ -28,12 +28,14 @@ jobs:
         node-version: [12.x]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GIT_TOKEN }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         with:
           path: ~/.cache/yarn
           key: ${{ runner.os }}-yarn-${{ hashFiles(format('{0}{1}', github.workspace, '/yarn.lock')) }}
@@ -55,11 +57,13 @@ jobs:
           git config --local user.name "GitHub Action"
 
       - name: Publish Netlify CMS
-        uses: erezrokah/2fa-with-slack-action@v1.0.0
+        uses: erezrokah/2fa-with-slack-action@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_PUBLISH_TOKEN }}
           NPM_TOKEN: ${{secrets.NPM_TOKEN}}
           SLACK_TOKEN: ${{secrets.SLACK_TOKEN}}
-          CONVERSATION_ID: ${{secrets.CONVERSATION_ID}}
-          PUBLISH_COMMAND: "yarn\npublish:ci:github"
+          CHANNEL_ID: ${{secrets.CHANNEL_ID}}
+          PUBLISH_COMMAND: "yarn\npublish:ci"
           CODE_PATTERN: 'Enter OTP'
+          # 40 minutes for the entire command, 20 minutes for waiting for 2FA
+          TIMEOUT: '2400000'
+          REVERT_COMMAND: './scripts/revert_publish.sh'

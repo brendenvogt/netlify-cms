@@ -20,7 +20,7 @@ import {
   getMediaDisplayURL,
   getMediaAsBlob,
   Credentials,
-  filterByPropExtension,
+  filterByExtension,
   Config,
   ImplementationFile,
   getPreviewStatus,
@@ -28,6 +28,8 @@ import {
   runWithLock,
   blobToFileObj,
   contentKeyFromBranch,
+  unsentRequest,
+  branchFromContentKey,
 } from 'netlify-cms-lib-util';
 import AuthenticationPage from './AuthenticationPage';
 import { Octokit } from '@octokit/rest';
@@ -39,6 +41,17 @@ type GitHubUser = Octokit.UsersGetAuthenticatedResponse;
 const MAX_CONCURRENT_DOWNLOADS = 10;
 
 type ApiFile = { id: string; type: string; name: string; path: string; size: number };
+
+const { fetchWithTimeout: fetch } = unsentRequest;
+
+const STATUS_PAGE = 'https://www.githubstatus.com';
+const GITHUB_STATUS_ENDPOINT = `${STATUS_PAGE}/api/v2/components.json`;
+const GITHUB_OPERATIONAL_UNITS = ['API Requests', 'Issues, Pull Requests, Projects'];
+type GitHubStatusComponent = {
+  id: string;
+  name: string;
+  status: string;
+};
 
 export default class GitHub implements Implementation {
   lock: AsyncLock;
@@ -59,6 +72,7 @@ export default class GitHub implements Implementation {
   previewContext: string;
   token: string | null;
   squashMerges: boolean;
+  cmsLabelPrefix: string;
   useGraphql: boolean;
   _currentUserPromise?: Promise<GitHubUser>;
   _userIsOriginMaintainerPromises?: {
@@ -98,10 +112,48 @@ export default class GitHub implements Implementation {
     this.apiRoot = config.backend.api_root || 'https://api.github.com';
     this.token = '';
     this.squashMerges = config.backend.squash_merges || false;
+    this.cmsLabelPrefix = config.backend.cms_label_prefix || '';
     this.useGraphql = config.backend.use_graphql || false;
     this.mediaFolder = config.media_folder;
     this.previewContext = config.backend.preview_context || '';
     this.lock = asyncLock();
+  }
+
+  isGitBackend() {
+    return true;
+  }
+
+  async status() {
+    const api = await fetch(GITHUB_STATUS_ENDPOINT)
+      .then(res => res.json())
+      .then(res => {
+        return res['components']
+          .filter((statusComponent: GitHubStatusComponent) =>
+            GITHUB_OPERATIONAL_UNITS.includes(statusComponent.name),
+          )
+          .every(
+            (statusComponent: GitHubStatusComponent) => statusComponent.status === 'operational',
+          );
+      })
+      .catch(e => {
+        console.warn('Failed getting GitHub status', e);
+        return true;
+      });
+
+    let auth = false;
+    // no need to check auth if api is down
+    if (api) {
+      auth =
+        (await this.api
+          ?.getUser()
+          .then(user => !!user)
+          .catch(e => {
+            console.warn('Failed getting GitHub user', e);
+            return false;
+          })) || false;
+    }
+
+    return { auth: { status: auth }, api: { status: api, statusPage: STATUS_PAGE } };
   }
 
   authComponent() {
@@ -247,6 +299,7 @@ export default class GitHub implements Implementation {
       originRepo: this.originRepo,
       apiRoot: this.apiRoot,
       squashMerges: this.squashMerges,
+      cmsLabelPrefix: this.cmsLabelPrefix,
       useOpenAuthoring: this.useOpenAuthoring,
       initialWorkflowStatus: this.options.initialWorkflowStatus,
     });
@@ -319,7 +372,7 @@ export default class GitHub implements Implementation {
         repoURL,
         depth,
       }).then(files => {
-        const filtered = filterByPropExtension(extension, 'path')(files);
+        const filtered = files.filter(file => filterByExtension(file, extension));
         const result = this.getCursorAndFiles(filtered, 1);
         cursor = result.cursor;
         return result.files;
@@ -328,7 +381,12 @@ export default class GitHub implements Implementation {
     const readFile = (path: string, id: string | null | undefined) =>
       this.api!.readFile(path, id, { repoURL }) as Promise<string>;
 
-    const files = await entriesByFolder(listFiles, readFile, API_NAME);
+    const files = await entriesByFolder(
+      listFiles,
+      readFile,
+      this.api!.readFileMetadata.bind(this.api),
+      API_NAME,
+    );
     // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
     // @ts-ignore
     files[CURSOR_COMPATIBILITY_SYMBOL] = cursor;
@@ -342,14 +400,18 @@ export default class GitHub implements Implementation {
       this.api!.listFiles(folder, {
         repoURL,
         depth,
-      }).then(files => {
-        return filterByPropExtension(extension, 'path')(files);
-      });
+      }).then(files => files.filter(file => filterByExtension(file, extension)));
 
-    const readFile = (path: string, id: string | null | undefined) =>
-      this.api!.readFile(path, id, { repoURL }) as Promise<string>;
+    const readFile = (path: string, id: string | null | undefined) => {
+      return this.api!.readFile(path, id, { repoURL }) as Promise<string>;
+    };
 
-    const files = await entriesByFolder(listFiles, readFile, API_NAME);
+    const files = await entriesByFolder(
+      listFiles,
+      readFile,
+      this.api!.readFileMetadata.bind(this.api),
+      API_NAME,
+    );
     return files;
   }
 
@@ -359,7 +421,7 @@ export default class GitHub implements Implementation {
     const readFile = (path: string, id: string | null | undefined) =>
       this.api!.readFile(path, id, { repoURL }).catch(() => '') as Promise<string>;
 
-    return entriesByFiles(files, readFile, 'GitHub');
+    return entriesByFiles(files, readFile, this.api!.readFileMetadata.bind(this.api), API_NAME);
   }
 
   // Fetches a single entry.
@@ -470,83 +532,91 @@ export default class GitHub implements Implementation {
       }
     }
 
+    const readFile = (path: string, id: string | null | undefined) =>
+      this.api!.readFile(path, id, { repoURL: this.api!.originRepoURL }).catch(() => '') as Promise<
+        string
+      >;
+
+    const entries = await entriesByFiles(
+      result.files,
+      readFile,
+      this.api!.readFileMetadata.bind(this.api),
+      API_NAME,
+    );
+
     return {
-      entries: await Promise.all(
-        result.files.map(file =>
-          this.api!.readFile(file.path, file.id, { repoURL: this.api!.originRepoURL }).then(
-            data => ({
-              file,
-              data: data as string,
-            }),
-          ),
-        ),
-      ),
+      entries,
       cursor: result.cursor,
     };
   }
 
-  loadMediaFile(branch: string, file: UnpublishedEntryMediaFile) {
+  async loadMediaFile(branch: string, file: UnpublishedEntryMediaFile) {
     const readFile = (
       path: string,
       id: string | null | undefined,
       { parseText }: { parseText: boolean },
     ) => this.api!.readFile(path, id, { branch, parseText });
 
-    return getMediaAsBlob(file.path, file.id, readFile).then(blob => {
-      const name = basename(file.path);
-      const fileObj = blobToFileObj(name, blob);
-      return {
-        id: file.id,
-        displayURL: URL.createObjectURL(fileObj),
-        path: file.path,
-        name,
-        size: fileObj.size,
-        file: fileObj,
-      };
-    });
+    const blob = await getMediaAsBlob(file.path, file.id, readFile);
+    const name = basename(file.path);
+    const fileObj = blobToFileObj(name, blob);
+    return {
+      id: file.id,
+      displayURL: URL.createObjectURL(fileObj),
+      path: file.path,
+      name,
+      size: fileObj.size,
+      file: fileObj,
+    };
   }
 
-  async loadEntryMediaFiles(branch: string, files: UnpublishedEntryMediaFile[]) {
-    const mediaFiles = await Promise.all(files.map(file => this.loadMediaFile(branch, file)));
-
-    return mediaFiles;
-  }
-
-  unpublishedEntries() {
+  async unpublishedEntries() {
     const listEntriesKeys = () =>
       this.api!.listUnpublishedBranches().then(branches =>
         branches.map(branch => contentKeyFromBranch(branch)),
       );
 
-    const readUnpublishedBranchFile = (contentKey: string) =>
-      this.api!.readUnpublishedBranchFile(contentKey);
-
-    return unpublishedEntries(listEntriesKeys, readUnpublishedBranchFile, 'GitHub');
+    const ids = await unpublishedEntries(listEntriesKeys);
+    return ids;
   }
 
-  async unpublishedEntry(
-    collection: string,
-    slug: string,
-    {
-      loadEntryMediaFiles = (branch: string, files: UnpublishedEntryMediaFile[]) =>
-        this.loadEntryMediaFiles(branch, files),
-    } = {},
-  ) {
+  async unpublishedEntry({
+    id,
+    collection,
+    slug,
+  }: {
+    id?: string;
+    collection?: string;
+    slug?: string;
+  }) {
+    if (id) {
+      const data = await this.api!.retrieveUnpublishedEntryData(id);
+      return data;
+    } else if (collection && slug) {
+      const entryId = this.api!.generateContentKey(collection, slug);
+      const data = await this.api!.retrieveUnpublishedEntryData(entryId);
+      return data;
+    } else {
+      throw new Error('Missing unpublished entry id or collection and slug');
+    }
+  }
+
+  getBranch(collection: string, slug: string) {
     const contentKey = this.api!.generateContentKey(collection, slug);
-    const data = await this.api!.readUnpublishedBranchFile(contentKey);
-    const files = data.metaData.objects.entry.mediaFiles || [];
-    const mediaFiles = await loadEntryMediaFiles(
-      data.metaData.branch,
-      files.map(({ id, path }) => ({ id, path })),
-    );
-    return {
-      slug,
-      file: { path: data.metaData.objects.entry.path, id: null },
-      data: data.fileData as string,
-      metaData: data.metaData,
-      mediaFiles,
-      isModification: data.isModification,
-    };
+    const branch = branchFromContentKey(contentKey);
+    return branch;
+  }
+
+  async unpublishedEntryDataFile(collection: string, slug: string, path: string, id: string) {
+    const branch = this.getBranch(collection, slug);
+    const data = (await this.api!.readFile(path, id, { branch })) as string;
+    return data;
+  }
+
+  async unpublishedEntryMediaFile(collection: string, slug: string, path: string, id: string) {
+    const branch = this.getBranch(collection, slug);
+    const mediaFile = await this.loadMediaFile(branch, { path, id });
+    return mediaFile;
   }
 
   async getDeployPreview(collection: string, slug: string) {

@@ -3,6 +3,105 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.11.3 (2020-08-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([8262487](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/82624879ccbcb16610090041db28f00714d924c8))
+
+
+
+
+
+## 2.11.2 (2020-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([118d50a](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/118d50a7a70295f25073e564b5161aa2b9883056))
+
+
+
+
+
+## [2.11.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.11.0...netlify-cms-backend-github@2.11.1) (2020-07-14)
+
+
+### Bug Fixes
+
+* **backend-github:** use workflow branch when listing files to move ([#4019](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/4019)) ([8720a42](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/8720a4233db16d91d6b86ee8653d05f8953cb430))
+
+
+
+
+
+# [2.11.0](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.6...netlify-cms-backend-github@2.11.0) (2020-06-18)
+
+
+### Bug Fixes
+
+* handle token expiry ([#3847](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3847)) ([285c940](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/285c940562548d7bc88de244123ba87ff66fba65))
+
+
+### Features
+
+* add backend status down indicator ([#3889](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3889)) ([a50edc7](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/a50edc70553ad6afa1acee6a51996ad226443f8c))
+* **backend-gitgateway:** improve deploy preview visibility ([#3882](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3882)) ([afc9bf4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/afc9bf4f3fe14ccb60851fc24e68922a6e4a85a9))
+
+
+
+
+
+## [2.10.6](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.5...netlify-cms-backend-github@2.10.6) (2020-05-19)
+
+**Note:** Version bump only for package netlify-cms-backend-github
+
+
+
+
+
+## [2.10.5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.4...netlify-cms-backend-github@2.10.5) (2020-04-21)
+
+**Note:** Version bump only for package netlify-cms-backend-github
+
+
+
+
+
+## [2.10.4](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.3...netlify-cms-backend-github@2.10.4) (2020-04-07)
+
+
+### Bug Fixes
+
+* **backend-github:** add fallback for diff errors/warnings ([#3558](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3558)) ([1705c79](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/1705c79a9297d844d5421d685a7785e1e210e39e))
+
+
+
+
+
+## [2.10.3](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.2...netlify-cms-backend-github@2.10.3) (2020-04-01)
+
+
+### Bug Fixes
+
+* **open-authoring:** properly delete open authoring branches ([#3512](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3512)) ([cc89aa5](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/cc89aa5c430a6bee51483cda91d0f92e7437f29e))
+
+
+
+
+
+## [2.10.2](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.1...netlify-cms-backend-github@2.10.2) (2020-04-01)
+
+
+### Bug Fixes
+
+* **open-authoring:** prevent workflow view from breaking on entry error ([#3508](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/issues/3508)) ([cbb3927](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/commit/cbb39271012fc3beecfdf180e573e343ee48fe26))
+
+
+
+
+
 ## [2.10.1](https://github.com/netlify/netlify-cms/tree/master/packages/netlify-cms-backend-github/compare/netlify-cms-backend-github@2.10.0...netlify-cms-backend-github@2.10.1) (2020-03-20)
 
 

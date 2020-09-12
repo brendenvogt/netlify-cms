@@ -45,7 +45,14 @@ describe('registry', () => {
   });
 
   describe('eventHandlers', () => {
-    const events = ['prePublish', 'postPublish', 'preUnpublish', 'postUnpublish'];
+    const events = [
+      'prePublish',
+      'postPublish',
+      'preUnpublish',
+      'postUnpublish',
+      'preSave',
+      'postSave',
+    ];
 
     describe('registerEventListener', () => {
       it('should throw error on invalid event', () => {
@@ -145,28 +152,6 @@ describe('registry', () => {
           expect(handler).toHaveBeenCalledWith(data, options);
         });
       });
-    });
-  });
-
-  describe('getWidget', () => {
-    it('should throw on missing widget', () => {
-      const { getWidget } = require('../registry');
-
-      expect(() => getWidget('Unknown')).toThrow(
-        new Error(
-          `Could not find widget 'Unknown'. Please make sure the widget name is configured correctly or register it via 'registerwidget'.`,
-        ),
-      );
-    });
-
-    it('should throw on missing widget and suggest lowercase name', () => {
-      const { getWidget, registerWidget } = require('../registry');
-
-      registerWidget('string', {});
-
-      expect(() => getWidget('String')).toThrow(
-        new Error(`Could not find widget 'String'. Did you mean 'string'?`),
-      );
     });
   });
 });
